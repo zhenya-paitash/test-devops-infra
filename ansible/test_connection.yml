@@ -1,0 +1,26 @@
+---
+- name: Test connection and gather facts
+  hosts: master_nodes
+  gather_facts: true
+
+  tasks:
+    - name: Ping the host
+      ansible.builtin.ping:
+
+    - name: Display basic host information
+      ansible.builtin.debug:
+        var: log
+      vars:
+        log:
+          hostname: "{{ ansible_hostname }}"
+          os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+          memory_mb: "{{ ansible_memtotal_mb }} MB"
+          cpu_count: "{{ ansible_processor_count }}"
+          cpu_cores: "{{ ansible_processor_vcpus }}"
+
+    - name: Save all facts to a log file
+      ansible.builtin.copy:
+        content: "{{ ansible_facts | to_nice_json }}"
+        dest: "../tmp/ansible_facts_{{ inventory_hostname }}.json"
+      delegate_to: localhost
+
