@@ -1,0 +1,18 @@
+---
+# defaults file for install_kubernetes
+kube_version: "1.34.1"
+pod_network_cidr: "192.168.0.0/16"
+cni_manifest_url: "https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml"
+
+# Управляет удалением taint с master-ноды, чтобы на ней можно было запускать обычные поды
+remove_control_plane_taint: true
+
+# Переменная для полной очистки кластера перед установкой
+# k8s_cleanup: false
+k8s_cleanup: true
+
+# Включение установки provisioner'а для NFS
+enabled_nfs_provisioner: false
+nfs_server_ip: ""
+nfs_export_path: "/export/k8s-storage"
+nfs_storage_class_name: "nfs-client"

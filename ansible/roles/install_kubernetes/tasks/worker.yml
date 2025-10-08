@@ -1,0 +1,9 @@
+---
+# Tasks for worker nodes
+
+- name: Join the worker node to the cluster
+  become: true
+  ansible.builtin.command: "{{ hostvars[groups['master_nodes'][0]]['join_command'] }}"
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+  changed_when: true
