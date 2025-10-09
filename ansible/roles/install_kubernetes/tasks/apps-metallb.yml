@@ -1,0 +1,7 @@
+---
+- name: Install metallb
+  become: true
+  ansible.builtin.command: "kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml"
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: true

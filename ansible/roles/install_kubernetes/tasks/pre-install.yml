@@ -1,0 +1,87 @@
+---
+# Common tasks for all nodes
+
+- name: Disable swap
+  become: true
+  block:
+    - name: Turn off swap
+      ansible.builtin.command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+      changed_when: false
+
+    - name: Remove swap entry from /etc/fstab
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\s*[^#].*swap'
+        state: absent
+
+- name: Load required kernel modules
+  become: true
+  block:
+    - name: Copy modules file
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+    - name: Load modules
+      ansible.builtin.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+- name: Configure sysctl for Kubernetes
+  become: true
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: present
+    reload: true
+    sysctl_file: /etc/sysctl.d/99-k8s.conf
+  loop:
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+
+- name: Install and configure containerd
+  become: true
+  block:
+    - name: Install containerd
+      ansible.builtin.pacman:
+        name: containerd
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Archlinux"
+
+    - name: Create containerd config directory
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+
+    - name: Generate containerd config and enable SystemdCgroup
+      ansible.builtin.shell: |
+        containerd config default > /etc/containerd/config.toml
+        sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+      changed_when: true
+      notify: Restart containerd
+
+- name: Install Kubernetes packages (Arch Linux)
+  become: true
+  ansible.builtin.shell: "yes | pacman -S --needed iptables-nft kubelet kubeadm kubectl"
+  register: pacman_install_result
+  changed_when: "'there is nothing to do' not in pacman_install_result.stdout"
+  when: ansible_os_family == "Archlinux"
+
+- name: Enable and start services
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  loop:
+    - containerd
+    - kubelet

@@ -1,6 +1,4 @@
 ---
-# tasks/clear-node.yml - Distribution-agnostic cleanup
-
 - name: Check if kubeadm exists
   become: true
   ansible.builtin.stat:
@@ -13,11 +11,7 @@
   when: kubeadm_binary.stat.exists
   ignore_errors: true
 
-- name: Get list of all services
-  become: true
-  ansible.builtin.service_facts:
-
-- name: Stop related services if they exist
+- name: Stop related services
   become: true
   ansible.builtin.systemd:
     name: "{{ item }}"
@@ -26,29 +20,13 @@
   loop:
     - kubelet
     - containerd
-  when: "item in ansible_facts.services"
   ignore_errors: true
 
-- name: Unhold Kubernetes packages (Debian)
-  ansible.builtin.dpkg_selections:
-    name: "{{ item }}"
-    selection: install
-  loop: [ 'kubelet', 'kubeadm', 'kubectl' ]
-  when: ansible_os_family == "Debian"
-  ignore_errors: true
-
-- name: Remove Kubernetes and container packages
+- name: Remove CNI configuration files
   become: true
-  ansible.builtin.package:
-    name:
-      - kubelet
-      - kubeadm
-      - kubectl
-      - kubernetes-cni
-      - containerd.io
-      - containerd
+  ansible.builtin.file:
+    path: /etc/cni/net.d/
     state: absent
-  ignore_errors: true
 
 - name: Remove Kubernetes configuration directories
   become: true
@@ -59,7 +37,6 @@
     - /etc/kubernetes
     - /var/lib/kubelet
     - /var/lib/etcd
-    - /etc/cni/net.d
 
 - name: Clean up user kubeconfig
   ansible.builtin.file:

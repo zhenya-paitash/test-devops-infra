@@ -1,0 +1,7 @@
+---
+- name: Install cert-manager
+  become: true
+  ansible.builtin.command: "kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml"
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: true

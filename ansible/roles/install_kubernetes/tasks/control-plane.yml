@@ -1,24 +1,20 @@
 ---
 # Tasks for control-plane node
 
-- name: Initialize the Kubernetes cluster using kubeadm
+- name: Perform network cleanup
+  ansible.builtin.include_tasks: network-cleanup.yml
+
+- name: Initialize the Kubernetes cluster
   become: true
-  ansible.builtin.command: "kubeadm init --pod-network-cidr={{ pod_network_cidr }} --kubernetes-version v{{ kube_version }} --upload-certs"
+  ansible.builtin.command: "kubeadm init --pod-network-cidr={{ pod_network_cidr }} --upload-certs"
   args:
     creates: /etc/kubernetes/admin.conf
-  register: kubeadm_init
+  when: inventory_hostname == groups['master_nodes'][0]
 
-- name: Restart kubelet to apply new configuration
-  become: true
-  ansible.builtin.systemd:
-    name: kubelet
-    state: restarted
-    daemon_reload: yes
-
-- name: Set up kubeconfig for ansible user and root
+- name: Set up kubeconfig for ansible user
   become: true
   block:
-    - name: Create .kube directory for user
+    - name: Create .kube directory
       ansible.builtin.file:
         path: "/home/{{ ansible_user }}/.kube"
         state: directory
@@ -34,19 +30,47 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: '0600'
+  when: inventory_hostname == groups['master_nodes'][0]
 
-    - name: Create .kube directory for root
-      ansible.builtin.file:
-        path: /root/.kube
-        state: directory
-        mode: '0755'
+- name: Install CNI plugin (Flannel)
+  ansible.builtin.command: "kubectl apply -f {{ cni_plugin_manifest_url }}"
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  when: inventory_hostname == groups['master_nodes'][0]
+  changed_when: true
 
-    - name: Copy admin.conf to root's kubeconfig
-      ansible.builtin.copy:
-        src: /etc/kubernetes/admin.conf
-        dest: /root/.kube/config
-        remote_src: true
-        mode: '0600'
+- name: Generate join command
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: join_command_raw
+  when: inventory_hostname == groups['master_nodes'][0]
+  changed_when: true
+
+- name: Store join command for worker nodes
+  ansible.builtin.copy:
+    content: "{{ join_command_raw.stdout }}"
+    dest: /tmp/kubeadm_join_command.sh
+    mode: '0755'
+  when: inventory_hostname == groups['master_nodes'][0]
+
+- name: Check for control-plane taint
+  become: true
+  ansible.builtin.command: "kubectl get node {{ ansible_hostname }} -o jsonpath='{.spec.taints}'"
+  register: node_taints
+  changed_when: false
+  when: inventory_hostname == groups['master_nodes'][0]
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+
+- name: Remove taint from control-plane node
+  become: true
+  ansible.builtin.command: "kubectl taint nodes {{ ansible_hostname }} node-role.kubernetes.io/control-plane:NoSchedule-"
+  when:
+    - inventory_hostname == groups['master_nodes'][0]
+    - remove_control_plane_taint | default(true)
+    - "'node-role.kubernetes.io/control-plane' in node_taints.stdout"
+  changed_when: true
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
 
 - name: Check for existing kubeconfig on local machine
   delegate_to: localhost
@@ -54,6 +78,7 @@
   ansible.builtin.stat:
     path: "{{ lookup('env', 'HOME') }}/.kube/config"
   register: local_kubeconfig
+  when: inventory_hostname == groups['master_nodes'][0]
 
 - name: Back up existing kubeconfig on local machine
   delegate_to: localhost
@@ -62,46 +87,33 @@
     src: "{{ lookup('env', 'HOME') }}/.kube/config"
     dest: "{{ lookup('env', 'HOME') }}/.kube/config.bak.{{ ansible_date_time.iso8601_basic_short }}"
     remote_src: no
-  when: local_kubeconfig.stat.exists
+  when:
+    - inventory_hostname == groups['master_nodes'][0]
+    - local_kubeconfig.stat.exists
 
 - name: Fetch kubeconfig to local machine
+  become: true
   ansible.builtin.fetch:
     src: /etc/kubernetes/admin.conf
     dest: "{{ lookup('env', 'HOME') }}/.kube/config"
     flat: yes
-  become: true
+  when: inventory_hostname == groups['master_nodes'][0]
 
-- name: Install CNI network plugin
-  ansible.builtin.command: "kubectl apply -f {{ cni_manifest_url }}"
-  args:
-    creates: /etc/cni/net.d/10-calico.conflist # This is an example path for Calico
-  changed_when: true
-  delegate_to: localhost
-  become: false
+- name: Install Kubernetes Apps
+  block:
+    - name: Install ingress-nginx
+      ansible.builtin.include_tasks: apps-ingress-nginx.yml
+      when: install_ingress_nginx | default(false)
 
-- name: Generate a token for workers to join
-  become: true
-  ansible.builtin.command: kubeadm token create --print-join-command
-  register: join_command_raw
-  changed_when: true
+    - name: Install cert-manager
+      ansible.builtin.include_tasks: apps-cert-manager.yml
+      when: install_cert_manager | default(false)
 
-- name: Store join command for other hosts
-  ansible.builtin.set_fact:
-    join_command: "{{ join_command_raw.stdout }}"
-  delegate_to: localhost
-  delegate_facts: true
-  become: false
+    - name: Install metallb
+      ansible.builtin.include_tasks: apps-metallb.yml
+      when: install_metallb | default(false)
 
-- name: (Optional) Remove taint from control-plane node
-  ansible.builtin.command: "kubectl taint nodes --all node-role.kubernetes.io/control-plane:NoSchedule-"
-  when: remove_control_plane_taint | default(false)
-  changed_when: true
-  delegate_to: localhost
-  become: false
-
-- name: Apply local-path-provisioner manifest
-  ansible.builtin.command:
-    cmd: kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.26/deploy/local-path-storage.yaml
-  changed_when: true
-  delegate_to: localhost
-  become: false
+    - name: Install metrics-server
+      ansible.builtin.include_tasks: apps-metrics-server.yml
+      when: install_metrics_server | default(false)
+  when: inventory_hostname == groups['master_nodes'][0]

@@ -1,37 +1,68 @@
-# Ansible Role: install_kubernetes
+# Роль Ansible: install_kubernetes
 
-This role installs a Kubernetes cluster using `kubeadm`.
+Эта роль устанавливает многоузловой кластер Kubernetes на системах Arch Linux.
 
-## Requirements
+Она спроектирована так, чтобы быть простой, надежной и идемпотентной, что позволяет безопасно перезапускать ее многократно. Роль выполняет очистку узлов, настройку CNI, инициализацию control-plane и присоединение рабочих узлов.
 
-- Ubuntu-based systems.
-- An inventory file with `master_nodes` and `worker_nodes` groups.
+## Требования
 
-## Role Variables
+- **Операционная система:** Arch Linux
+- **Инвентарь (Inventory):** Ваш инвентарь Ansible должен содержать две группы:
+    - `master_nodes`: Должна содержать ровно один узел control-plane.
+    - `worker_nodes`: Может содержать один или несколько рабочих узлов. Если группа пуста, будет создан одноузловой кластер.
 
-Available variables are listed below, along with default values (see `defaults/main.yml`):
+Каждый узел в кластере должен иметь уникальное имя хоста (hostname).
 
-- `kube_version`: The version of Kubernetes to install.
-  Default: `1.30.0`
+## Переменные Роли
 
-- `pod_network_cidr`: The CIDR range for the pod network.
-  Default: `"192.168.0.0/16"` (compatible with Calico)
+Переменные определены в файле `defaults/main.yml`.
 
-- `cni_manifest_url`: The URL for the CNI plugin manifest.
-  Default: `"https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml"`
+- `pod_network_cidr`: Диапазон CIDR для сети подов.
+    - *По умолчанию:* `"10.244.0.0/16"`
+- `cni_plugin_manifest_url`: URL-адрес манифеста CNI (Container Network Interface).
+    - *По умолчанию:* `"https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"` (Flannel)
+- `remove_control_plane_taint`: Если `true`, удаляет ограничение (taint), которое мешает подам размещаться на узле control-plane.
+    - *По умолчанию:* `true`
+- `k8s_cleanup`: Если `true`, выполняет полную очистку (`kubeadm reset`) на всех узлах перед установкой.
+    - *По умолчанию:* `false`
 
-- `remove_control_plane_taint`: Whether to remove the `NoSchedule` taint from the control-plane node, allowing pods to be scheduled on it.
-  Default: `true`
+### Приложения
 
-## Dependencies
+Эти логические флаги управляют установкой опциональных, но крайне рекомендуемых приложений Kubernetes.
 
-None.
+- `install_ingress_nginx`: Устанавливает NGINX Ingress Controller для управления внешним доступом к сервисам.
+    - *По умолчанию:* `true`
+- `install_cert_manager`: Устанавливает Cert-Manager для автоматического предоставления и управления TLS-сертификатами.
+    - *По умолчанию:* `false`
+- `install_metallb`: Устанавливает MetalLB, который предоставляет сервисы типа `LoadBalancer` для "голого железа".
+    - *По умолчанию:* `false`
+- `install_metrics_server`: Устанавливает Metrics Server, необходимый для работы команды `kubectl top`.
+    - *По умолчанию:* `true`
 
-## Example Playbook
+## Зависимости
+
+Нет.
+
+## Пример Плейбука
 
 ```yaml
-- hosts: all
+- name: Install Kubernetes Cluster
+  hosts: all
   become: true
   roles:
-     - role: install_kubernetes
+    - install_kubernetes
 ```
+
+## Устанавливаемые Компоненты
+
+Эта роль может установить следующие приложения:
+
+- **Flannel (CNI):** Простой и надежный сетевой оверлей, который обеспечивает сетевое взаимодействие для подов.
+- **NGINX Ingress Controller:** Ingress-контроллер, использующий NGINX для управления внешним HTTP/S доступом к сервисам кластера. Он позволяет определять правила маршрутизации от внешних URL-адресов к внутренним сервисам.
+- **Cert-Manager:** Мощный инструмент, который автоматизирует управление TLS-сертификатами. Он может автоматически выпускать сертификаты из различных источников (например, Let's Encrypt) и поддерживать их в актуальном состоянии.
+- **MetalLB:** Реализация балансировщика нагрузки для кластеров Kubernetes на "голом железе". Позволяет создавать сервисы типа `LoadBalancer`, которые обычно доступны только на облачных платформах.
+- **Metrics Server:** Общекластерный агрегатор данных об использовании ресурсов. Это ключевой компонент, который позволяет инструментам, таким как `kubectl top`, показывать, сколько CPU и памяти используют ваши узлы и поды.
+
+## Идемпотентность
+
+Роль спроектирована для безопасного многократного запуска. Она включает в себя логику очистки, которая сбрасывает узлы и сетевые конфигурации для обеспечения согласованного состояния при каждом запуске, предотвращая ошибки от предыдущих неудачных попыток.
