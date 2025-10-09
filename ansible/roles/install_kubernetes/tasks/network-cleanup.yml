@@ -1,0 +1,25 @@
+---
+- name: Stop services
+  become: true
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: stopped
+  loop:
+    - kubelet
+    - containerd
+  ignore_errors: true
+
+- name: Delete CNI network interfaces
+  become: true
+  ansible.builtin.command: "ip link delete {{ item }}"
+  loop:
+    - cni0
+    - flannel.1
+  ignore_errors: true
+  changed_when: false
+
+- name: Remove CNI configuration files
+  become: true
+  ansible.builtin.file:
+    path: /etc/cni/net.d
+    state: absent

@@ -1,6 +1,9 @@
 ---
 # Tasks for control-plane node
 
+- name: Perform network cleanup
+  ansible.builtin.include_tasks: network-cleanup.yml
+
 - name: Initialize the Kubernetes cluster
   become: true
   ansible.builtin.command: "kubeadm init --pod-network-cidr={{ pod_network_cidr }} --upload-certs"
@@ -49,11 +52,68 @@
     mode: '0755'
   when: inventory_hostname == groups['master_nodes'][0]
 
-- name: (Optional) Remove taint from control-plane node
-  ansible.builtin.command: "kubectl taint nodes --all node-role.kubernetes.io/control-plane-"
+- name: Check for control-plane taint
+  become: true
+  ansible.builtin.command: "kubectl get node {{ ansible_hostname }} -o jsonpath='{.spec.taints}'"
+  register: node_taints
+  changed_when: false
+  when: inventory_hostname == groups['master_nodes'][0]
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
+
+- name: Remove taint from control-plane node
+  become: true
+  ansible.builtin.command: "kubectl taint nodes {{ ansible_hostname }} node-role.kubernetes.io/control-plane:NoSchedule-"
   when:
     - inventory_hostname == groups['master_nodes'][0]
     - remove_control_plane_taint | default(true)
+    - "'node-role.kubernetes.io/control-plane' in node_taints.stdout"
   changed_when: true
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+
+- name: Check for existing kubeconfig on local machine
+  delegate_to: localhost
+  become: false
+  ansible.builtin.stat:
+    path: "{{ lookup('env', 'HOME') }}/.kube/config"
+  register: local_kubeconfig
+  when: inventory_hostname == groups['master_nodes'][0]
+
+- name: Back up existing kubeconfig on local machine
+  delegate_to: localhost
+  become: false
+  ansible.builtin.copy:
+    src: "{{ lookup('env', 'HOME') }}/.kube/config"
+    dest: "{{ lookup('env', 'HOME') }}/.kube/config.bak.{{ ansible_date_time.iso8601_basic_short }}"
+    remote_src: no
+  when:
+    - inventory_hostname == groups['master_nodes'][0]
+    - local_kubeconfig.stat.exists
+
+- name: Fetch kubeconfig to local machine
+  become: true
+  ansible.builtin.fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ lookup('env', 'HOME') }}/.kube/config"
+    flat: yes
+  when: inventory_hostname == groups['master_nodes'][0]
+
+- name: Install Kubernetes Apps
+  block:
+    - name: Install ingress-nginx
+      ansible.builtin.include_tasks: apps-ingress-nginx.yml
+      when: install_ingress_nginx | default(false)
+
+    - name: Install cert-manager
+      ansible.builtin.include_tasks: apps-cert-manager.yml
+      when: install_cert_manager | default(false)
+
+    - name: Install metallb
+      ansible.builtin.include_tasks: apps-metallb.yml
+      when: install_metallb | default(false)
+
+    - name: Install metrics-server
+      ansible.builtin.include_tasks: apps-metrics-server.yml
+      when: install_metrics_server | default(false)
+  when: inventory_hostname == groups['master_nodes'][0]

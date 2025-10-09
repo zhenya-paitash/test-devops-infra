@@ -1,5 +1,5 @@
 ---
-# tasks file for k8s_install
+# main tasks file for k8s_install
 
 - name: Run cleanup if requested
   ansible.builtin.include_tasks: cleanup.yml
