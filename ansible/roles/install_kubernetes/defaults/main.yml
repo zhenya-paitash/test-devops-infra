@@ -1,6 +1,4 @@
 ---
-# defaults file for k8s_install
-
 # On Arch Linux, pacman installs the latest version of Kubernetes packages.
 # The --kubernetes-version flag for kubeadm is therefore omitted to avoid version conflicts.
 # kube_version: "1.33.0" # Example, but not used in the init command.
@@ -8,19 +6,13 @@
 # This CIDR is for pods and should not overlap with the host network.
 # The previous 192.168.0.0/16 was conflicting with your host network.
 pod_network_cidr: "10.244.0.0/16"
-
-# CNI manifest URL. Using Flannel for simplicity.
+k8s_cleanup: false
+remove_control_plane_taint: true
 cni_plugin_manifest_url: "https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"
 
-# Set to true to remove the taint that prevents pods from scheduling on the control-plane node.
-remove_control_plane_taint: true
-
-# Set to true to run cleanup tasks before installation.
-k8s_cleanup: false
-
-# --- Kubernetes Apps ---
+# --- Apps ---
 install_ingress_nginx: true
 install_cert_manager: true
-install_metallb: false
 install_metrics_server: true
+install_metallb: true
 
