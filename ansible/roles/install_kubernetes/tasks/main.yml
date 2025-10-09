@@ -1,20 +1,20 @@
 ---
-# tasks file for install_kubernetes
+# tasks file for k8s_install
 
-- name: Run cleanup tasks if k8s_cleanup is true
-  ansible.builtin.include_tasks: clear-node.yml
-  when: k8s_cleanup | default(false) | bool
+- name: Run cleanup if requested
+  ansible.builtin.include_tasks: cleanup.yml
+  when: k8s_cleanup | default(false)
 
 - name: Gather facts
   ansible.builtin.setup:
 
-- name: Run common installation tasks for all nodes
-  ansible.builtin.include_tasks: common.yml
+- name: Run common pre-installation tasks
+  ansible.builtin.include_tasks: pre-install.yml
 
 - name: Run control-plane specific tasks
   ansible.builtin.include_tasks: control-plane.yml
   when: inventory_hostname in groups['master_nodes']
 
 - name: Run worker specific tasks
-  ansible.builtin.include_tasks: worker.yml
+  ansible.builtin.include_tasks: workers.yml
   when: inventory_hostname in groups['worker_nodes']

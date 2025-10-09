@@ -1,0 +1,18 @@
+---
+# handlers file for install_kubernetes
+- name: Restart containerd
+  become: true
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+    daemon_reload: yes
+
+- name: Reboot node
+  become: true
+  ansible.builtin.reboot:
+    msg: "Rebooting node to apply kernel changes"
+    connect_timeout: 5
+    reboot_timeout: 600
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    test_command: whoami

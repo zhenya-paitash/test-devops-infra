@@ -120,13 +120,9 @@
         update_cache: true
       when: ansible_os_family == "Debian"
 
-    - name: Forcefully remove legacy iptables package (Archlinux)
-      become: true
-      ansible.builtin.command: "pacman -Rdd --noconfirm iptables"
-      register: rdd_result
-      changed_when: "'removing iptables' in rdd_result.stdout"
-      failed_when: "rdd_result.rc != 0 and 'not found' not in rdd_result.stderr"
-      when: ansible_os_family == "Archlinux"
+
+
+
 
     - name: Install kubelet, kubeadm, kubectl (Archlinux)
       become: true

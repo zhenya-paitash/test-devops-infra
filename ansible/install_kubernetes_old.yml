@@ -1,0 +1,7 @@
+---
+- name: Install Kubernetes
+  hosts: all
+  become: true
+  strategy: linear
+  roles:
+    - role: install_kubernetes_old

@@ -1,6 +1,6 @@
 ---
 - name: Test connection and gather facts
-  hosts: master_nodes
+  hosts: all
   gather_facts: true
 
   tasks:
@@ -12,6 +12,7 @@
         var: log
       vars:
         log:
+          ip: "{{ ansible_default_ipv4.address }}"
           hostname: "{{ ansible_hostname }}"
           os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
           memory_mb: "{{ ansible_memtotal_mb }} MB"

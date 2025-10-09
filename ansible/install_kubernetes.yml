@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Install Kubernetes Cluster
+  hosts: all
   become: true
   roles:
     - role: install_kubernetes

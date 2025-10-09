@@ -1,0 +1,13 @@
+---
+# Tasks for worker nodes
+
+- name: Get join command from local file
+  ansible.builtin.command: cat /tmp/kube_join_command.sh
+  register: join_command_from_file
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
+- name: Join the worker node to the cluster
+  become: true
+  ansible.builtin.command: "{{ join_command_from_file.stdout }}"
