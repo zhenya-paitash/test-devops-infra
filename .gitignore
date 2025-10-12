@@ -1,2 +1,5 @@
-/tmp
-/kubespray
+/infrastructure/ansible/artifacts/facts/*.json
+# /kubespray
+# /aston-infra
+
+# .gitkeep

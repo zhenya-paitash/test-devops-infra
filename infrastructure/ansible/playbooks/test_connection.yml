@@ -1,0 +1,53 @@
+---
+- name: Test Connection and Gather Host Information
+  hosts: all
+  gather_facts: false
+
+  pre_tasks:
+    # check ssh connection + run pythong ping script
+    - name: "1. Check SSH connection (ping)"
+      ansible.builtin.ping:
+      tags: ping
+
+  tasks:
+    # because we disable gather_facts in this playbook on 4th line
+    - name: "2. Gather Facts"
+      ansible.builtin.setup:
+      tags: facts
+
+    - name: "3. Log Main Host Information"
+      ansible.builtin.debug:
+        msg:
+          - "hostname: {{ ansible_hostname }}"
+          - "ip: {{ ansible_default_ipv4.address | default('N/A') }}"
+          - "os: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "kernel: {{ ansible_kernel }}"
+          - "memory_total_mb: {{ ansible_memtotal_mb }}"
+          - "cpu_cores: {{ ansible_processor_vcpus }}"
+          - "default_ipv4: {{ ansible_default_ipv4 }}"
+          - "all_ipv4_addresses: {{ ansible_all_ipv4_addresses }}"
+      tags: debug
+
+    - name: "4. Save facts to local file"
+      delegate_to: localhost
+      tags: save_facts
+      block:
+      - name: "4.1 Create artifacts directory"
+        run_once: true
+        ansible.builtin.file:
+          path: "{{ playbook_dir }}/../artifacts/facts"
+          state: directory
+
+      - name: "4.2 Save Key Facts to Local File"
+        ansible.builtin.copy:
+          content: "{{ ansible_facts | to_nice_json }}"
+          dest: "{{ playbook_dir }}/../artifacts/facts/{{ inventory_hostname }}.json"
+
+  post_tasks:
+    - name: "✅ Test Connection and Gather Host Information DONE!"
+      run_once: true
+      delegate_to: localhost
+      ansible.builtin.debug:
+        msg: "All hosts in inventory are reachable."
+      tags: debug
+

@@ -1,0 +1,13 @@
+---
+collections:
+  # Необходима для модуля sysctl и других POSIX-взаимодействий
+  - name: ansible.posix
+    version: "1.5.4"
+
+  # Содержит полезные модули и улучшенный callback 'yaml' для вывода
+  - name: community.general
+    version: "9.2.0"
+
+  # Критически важна для декларативного управления ресурсами Kubernetes
+  - name: kubernetes.core
+    version: "2.4.0"
