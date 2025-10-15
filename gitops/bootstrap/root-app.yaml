@@ -1,3 +1,4 @@
+# Этот манифест реализует паттерн "Приложение из приложений".
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -5,27 +6,30 @@ metadata:
   namespace: argocd
 spec:
   generators:
-    - git:
-        repoURL: https://github.com/zhenya-paitash/test-devops-infra.git
-        revision: main
-        files:
-          - path: "gitops/apps/dev/*.yaml"
+    # List-генератор. Просто перечисляем все наши приложения здесь.
+    - list:
+        elements:
+          - name: kafka
+            namespace: kafka
+            chartPath: gitops/charts/kafka
+
+  # Шаблон, который будет применен для каждого элемента из списка `elements`
   template:
     metadata:
-      name: '{{name}}' # Имя приложения берется из параметра в файле
+      name: '{{name}}' # Подставляется из элемента списка
       namespace: argocd
     spec:
       project: default
       source:
-        repoURL: https://github.com/zhenya-paitash/test-devops-infra.git # Определено в одном месте
-        targetRevision: main # Определено в одном месте
-        path: '{{path}}' # Путь к чарту берется из параметра в файле
+        repoURL: https://github.com/zhenya-paitash/test-devops-infra.git
+        targetRevision: main
+        path: '{{chartPath}}' # Подставляется из элемента списка
         helm:
           valueFiles:
             - values.yaml
       destination:
         server: https://kubernetes.default.svc
-        namespace: '{{namespace}}' # Неймспейс берется из параметра в файле
+        namespace: '{{namespace}}' # Подставляется из элемента списка
       syncPolicy:
         automated:
           prune: true
