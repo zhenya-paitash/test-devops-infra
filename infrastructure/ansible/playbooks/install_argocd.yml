@@ -1,0 +1,11 @@
+---
+- name: Установка и настройка ArgoCD
+  hosts: master_nodes # Запускаем на группе мастеров
+  become: false
+  gather_facts: false
+
+  tasks:
+    - name: Запуск роли для установки ArgoCD (выполняется только на одном узле)
+      ansible.builtin.include_role:
+        name: install_argocd
+      run_once: true # Гарантирует, что роль выполнится только один раз для всей группы
