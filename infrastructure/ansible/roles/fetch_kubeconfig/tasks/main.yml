@@ -1,0 +1,23 @@
+---
+- name: Проверка наличия kubeconfig на локальной машине
+  delegate_to: localhost
+  become: false
+  ansible.builtin.stat:
+    path: "{{ lookup('env', 'HOME') }}/.kube/config"
+  register: local_kubeconfig
+
+- name: Создание бэкапа существующего kubeconfig
+  delegate_to: localhost
+  become: false
+  ansible.builtin.copy:
+    src: "{{ lookup('env', 'HOME') }}/.kube/config"
+    dest: "{{ lookup('env', 'HOME') }}/.kube/config.bak.{{ ansible_date_time.iso8601_basic_short }}"
+    remote_src: no
+  when: local_kubeconfig.stat.exists
+
+- name: Скачивание kubeconfig с мастер-узла
+  become: true
+  ansible.builtin.fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ lookup('env', 'HOME') }}/.kube/config"
+    flat: yes
