@@ -15,8 +15,11 @@
   loop:
     - cni0
     - flannel.1
-  ignore_errors: true
-  changed_when: false
+  register: delete_result
+  changed_when: delete_result.rc == 0
+  failed_when:
+    - delete_result.rc != 0
+    - "'Cannot find device' not in delete_result.stderr"
 
 - name: Remove CNI configuration files
   become: true

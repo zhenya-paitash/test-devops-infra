@@ -85,3 +85,11 @@
   loop:
     - containerd
     - kubelet
+
+- name: Ensure hostname is resolvable
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_default_ipv4.address }} {{ ansible_hostname }}"
+    regexp: "^{{ ansible_default_ipv4.address }}.*{{ ansible_hostname }}"
+    state: present

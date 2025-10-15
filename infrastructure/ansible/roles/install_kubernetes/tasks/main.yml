@@ -17,4 +17,4 @@
 
 - name: Run worker specific tasks
   ansible.builtin.include_tasks: workers.yml
-  when: inventory_hostname in groups['worker_nodes']
+  when: "'worker_nodes' in groups and inventory_hostname in groups['worker_nodes']"

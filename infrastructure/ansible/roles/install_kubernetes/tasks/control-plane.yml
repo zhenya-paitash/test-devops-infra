@@ -4,6 +4,16 @@
 - name: Perform network cleanup
   ansible.builtin.include_tasks: network-cleanup.yml
 
+- name: Ensure container runtime and kubelet are running
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - containerd
+    - kubelet
+
 - name: Initialize the Kubernetes cluster
   become: true
   ansible.builtin.command: "kubeadm init --pod-network-cidr={{ pod_network_cidr }} --upload-certs"
@@ -54,7 +64,7 @@
 
 - name: Check for control-plane taint
   become: true
-  ansible.builtin.command: "kubectl get node {{ ansible_hostname }} -o jsonpath='{.spec.taints}'"
+  ansible.builtin.command: "kubectl get node {{ ansible_hostname | lower }} -o jsonpath='{.spec.taints}'"
   register: node_taints
   changed_when: false
   when: inventory_hostname == groups['master_nodes'][0]
@@ -63,7 +73,7 @@
 
 - name: Remove taint from control-plane node
   become: true
-  ansible.builtin.command: "kubectl taint nodes {{ ansible_hostname }} node-role.kubernetes.io/control-plane:NoSchedule-"
+  ansible.builtin.command: "kubectl taint nodes {{ ansible_hostname | lower }} node-role.kubernetes.io/control-plane:NoSchedule-"
   when:
     - inventory_hostname == groups['master_nodes'][0]
     - remove_control_plane_taint | default(true)
