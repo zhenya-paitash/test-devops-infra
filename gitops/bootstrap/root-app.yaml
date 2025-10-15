@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: root-dev
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/zhenya-paitash/test-devops-infra.git
+        revision: main
+        files:
+          - path: "gitops/apps/dev/*.yaml"
+  template:
+    metadata:
+      name: '{{name}}' # Имя приложения берется из параметра в файле
+      namespace: argocd
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/zhenya-paitash/test-devops-infra.git # Определено в одном месте
+        targetRevision: main # Определено в одном месте
+        path: '{{path}}' # Путь к чарту берется из параметра в файле
+        helm:
+          valueFiles:
+            - values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}' # Неймспейс берется из параметра в файле
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

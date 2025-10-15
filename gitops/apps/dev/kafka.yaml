@@ -1,0 +1,5 @@
+# Параметры для приложения Kafka
+# ApplicationSet использует этот файл для генерации манифеста ArgoCD Application
+name: kafka
+path: gitops/charts/kafka
+namespace: kafka
