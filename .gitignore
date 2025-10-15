@@ -1,6 +1,5 @@
 # DIRS
-# /kubespray
-# /aston-infra
+_examples/
 
 # FILES
 # .gitkeep
