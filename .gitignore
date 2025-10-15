@@ -4,4 +4,5 @@ _examples/
 # FILES
 # .gitkeep
 infrastructure/ansible/artifacts/facts/*.json
+./gitops/artifacts/template/*.yaml
 
