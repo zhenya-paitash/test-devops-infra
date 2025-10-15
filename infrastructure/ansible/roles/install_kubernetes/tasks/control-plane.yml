@@ -82,31 +82,9 @@
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
 
-- name: Check for existing kubeconfig on local machine
-  delegate_to: localhost
-  become: false
-  ansible.builtin.stat:
-    path: "{{ lookup('env', 'HOME') }}/.kube/config"
-  register: local_kubeconfig
-  when: inventory_hostname == groups['master_nodes'][0]
-
-- name: Back up existing kubeconfig on local machine
-  delegate_to: localhost
-  become: false
-  ansible.builtin.copy:
-    src: "{{ lookup('env', 'HOME') }}/.kube/config"
-    dest: "{{ lookup('env', 'HOME') }}/.kube/config.bak.{{ ansible_date_time.iso8601_basic_short }}"
-    remote_src: no
-  when:
-    - inventory_hostname == groups['master_nodes'][0]
-    - local_kubeconfig.stat.exists
-
-- name: Fetch kubeconfig to local machine
-  become: true
-  ansible.builtin.fetch:
-    src: /etc/kubernetes/admin.conf
-    dest: "{{ lookup('env', 'HOME') }}/.kube/config"
-    flat: yes
+- name: Скачивание kubeconfig на локальную машину
+  ansible.builtin.include_role:
+    name: fetch_kubeconfig
   when: inventory_hostname == groups['master_nodes'][0]
 
 - name: Install Kubernetes Apps
