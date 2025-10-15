@@ -6,13 +6,13 @@
 # This CIDR is for pods and should not overlap with the host network.
 # The previous 192.168.0.0/16 was conflicting with your host network.
 pod_network_cidr: "10.244.0.0/16"
-k8s_cleanup: false
+k8s_cleanup: true
 remove_control_plane_taint: true
 cni_plugin_manifest_url: "https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"
 
 # --- Apps ---
 install_ingress_nginx: true
-install_cert_manager: true
-install_metrics_server: true
-install_metallb: true
+install_cert_manager: false
+install_metrics_server: false
+install_metallb: false
 
