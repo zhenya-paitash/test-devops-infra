@@ -26,7 +26,10 @@ kafka:
 #   partitions: 3
 #   replicas: 1
 #   retentionMs: 7200000
-topics: []
+topics:
+  - name: hello-world-topic
+    partitions: 3
+    replicas: 1
 
 # Resource allocation for components
 resources:
