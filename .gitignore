@@ -1,5 +1,8 @@
-/infrastructure/ansible/artifacts/facts/*.json
+# DIRS
 # /kubespray
 # /aston-infra
 
+# FILES
 # .gitkeep
+infrastructure/ansible/artifacts/facts/*.json
+
