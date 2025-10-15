@@ -1,0 +1,3 @@
+---
+# URL для официального "не-HA" манифеста установки ArgoCD
+argocd_install_manifest_url: "https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"

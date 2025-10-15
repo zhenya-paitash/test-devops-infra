@@ -1,0 +1,22 @@
+---
+- name: Установка Python-зависимостей через pacman
+  become: true
+  ansible.builtin.pacman:
+    name:
+      - python-pip          # Устанавливает pip и его зависимость packaging
+      - python-kubernetes   # Устанавливает библиотеку kubernetes для Ansible
+    state: present
+    update_cache: yes
+
+- name: Создание неймспейса для ArgoCD
+  kubernetes.core.k8s:
+    name: argocd
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Установка манифестов ArgoCD
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ argocd_install_manifest_url }}"
+    namespace: argocd
