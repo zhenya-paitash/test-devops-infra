@@ -43,7 +43,7 @@
   when: inventory_hostname == groups['master_nodes'][0]
 
 - name: Install CNI plugin (Flannel)
-  ansible.builtin.command: "kubectl apply -f {{ cni_plugin_manifest_url }}"
+  ansible.builtin.command: "kubectl apply -f {{ url_plugin_cni_flunnel }}"
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
   when: inventory_hostname == groups['master_nodes'][0]
@@ -91,17 +91,17 @@
   block:
     - name: Install ingress-nginx
       ansible.builtin.include_tasks: apps-ingress-nginx.yml
-      when: install_ingress_nginx | default(false)
+      when: app_install_ingress_nginx | default(false)
 
     - name: Install cert-manager
       ansible.builtin.include_tasks: apps-cert-manager.yml
-      when: install_cert_manager | default(false)
+      when: app_install_cert_manager | default(false)
 
     - name: Install metallb
       ansible.builtin.include_tasks: apps-metallb.yml
-      when: install_metallb | default(false)
+      when: app_install_metallb | default(false)
 
     - name: Install metrics-server
       ansible.builtin.include_tasks: apps-metrics-server.yml
-      when: install_metrics_server | default(false)
+      when: app_install_metrics_server | default(false)
   when: inventory_hostname == groups['master_nodes'][0]

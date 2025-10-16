@@ -4,14 +4,13 @@ kind: Kafka
 metadata:
   name: {{ .Values.kafkaCluster.name }}
   namespace: {{ .Release.Namespace }}
+  annotations:
+    strimzi.io/inter-broker-protocol-listener: "tls"
 spec:
   kafka:
     version: {{ .Values.kafkaCluster.version }}
+    image: {{ .Values.kafkaCluster.image }}
     listeners:
-      - name: plain
-        port: 9092
-        type: internal
-        tls: false
       - name: tls
         port: 9093
         type: internal

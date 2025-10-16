@@ -19,7 +19,7 @@
 
 - `pod_network_cidr`: Диапазон CIDR для сети подов.
     - *По умолчанию:* `"10.244.0.0/16"`
-- `cni_plugin_manifest_url`: URL-адрес манифеста CNI (Container Network Interface).
+- `url_plugin_cni_flunnel`: URL-адрес манифеста CNI (Container Network Interface).
     - *По умолчанию:* `"https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml"` (Flannel)
 - `remove_control_plane_taint`: Если `true`, удаляет ограничение (taint), которое мешает подам размещаться на узле control-plane.
     - *По умолчанию:* `true`
@@ -30,13 +30,13 @@
 
 Эти логические флаги управляют установкой опциональных, но крайне рекомендуемых приложений Kubernetes.
 
-- `install_ingress_nginx`: Устанавливает NGINX Ingress Controller для управления внешним доступом к сервисам.
+- `app_install_ingress_nginx`: Устанавливает NGINX Ingress Controller для управления внешним доступом к сервисам.
     - *По умолчанию:* `true`
-- `install_cert_manager`: Устанавливает Cert-Manager для автоматического предоставления и управления TLS-сертификатами.
+- `app_install_cert_manager`: Устанавливает Cert-Manager для автоматического предоставления и управления TLS-сертификатами.
     - *По умолчанию:* `false`
-- `install_metallb`: Устанавливает MetalLB, который предоставляет сервисы типа `LoadBalancer` для "голого железа".
+- `app_install_metallb`: Устанавливает MetalLB, который предоставляет сервисы типа `LoadBalancer` для "голого железа".
     - *По умолчанию:* `false`
-- `install_metrics_server`: Устанавливает Metrics Server, необходимый для работы команды `kubectl top`.
+- `app_install_metrics_server`: Устанавливает Metrics Server, необходимый для работы команды `kubectl top`.
     - *По умолчанию:* `true`
 
 ## Зависимости
