@@ -4,17 +4,13 @@ kind: Kafka
 metadata:
   name: {{ .Values.kafkaCluster.name }}
   namespace: {{ .Release.Namespace }}
-  annotations:
-    strimzi.io/inter-broker-protocol-listener: "tls"
 spec:
   kafka:
     version: {{ .Values.kafkaCluster.version }}
     image: {{ .Values.kafkaCluster.image }}
+    replicas: 1 # This is required for the operator to know the size, but pools are the source of truth
     listeners:
-      - name: tls
-        port: 9093
-        type: internal
-        tls: true
+{{ toYaml .Values.kafkaCluster.listeners | indent 6 }}
     config:
 {{ toYaml .Values.kafkaCluster.config | indent 6 }}
     storage:
@@ -37,7 +33,6 @@ spec:
   template:
     bootstrapService:
       metadata:
-        # This ensures the service is named to match your microservices' configuration
         name: {{ .Values.kafkaCluster.name }}
 ---
 {{- range .Values.kafkaCluster.nodePools }}
@@ -75,8 +70,6 @@ metadata:
     app: strimzi
 data:
   kafka-metrics-config.yml: |-
-    # This configuration is used by the JMX Exporter. Default settings are used.
-    # See: https://github.com/prometheus/jmx_exporter
     lowercaseOutputName: true
     lowercaseOutputLabelNames: true
 {{- end }}

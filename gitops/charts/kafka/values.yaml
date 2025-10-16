@@ -1,10 +1,61 @@
-# Default values for strimzi-kafka-operator.
+# Values for the custom Kafka chart
+
+kafkaCluster:
+  enabled: true
+  namespace: kafka
+  name: kafka
+  version: 4.1.0
+  image: quay.io/strimzi/kafka:0.48.0-kafka-4.1.0
+
+  listeners:
+    - name: plain
+      port: 9092
+      type: internal
+      tls: false
+    - name: tls
+      port: 9093
+      type: internal
+      tls: true
+
+  nodePools:
+    - name: combined
+      replicas: 1
+      roles: [broker, controller]
+      storage:
+        type: ephemeral
+      resources:
+        requests: { cpu: 500m, memory: 1Gi }
+        limits: { cpu: 1, memory: 1.5Gi }
+
+  config:
+    offsets.topic.replication.factor: 1
+    transaction.state.log.replication.factor: 1
+    transaction.state.log.min.isr: 1
+    auto.create.topics.enable: "true"
+
+  entityOperator:
+    resources:
+      requests: { cpu: 100m, memory: 384Mi } # Lowered CPU request
+      limits: { cpu: 500m, memory: 768Mi }
+
+  metrics:
+    enabled: true
+
+kafkaTopic:
+  enabled: true
+  name: my-topic
+  partitions: 3
+  replicas: 1
+
+kafkaUser:
+  enabled: true
+  name: my-user
+
+# --- Original Strimzi Operator values below ---
 
 replicas: 1
-
 watchNamespaces: []
 watchAnyNamespace: false
-
 defaultImageRegistry: quay.io
 defaultImageRepository: strimzi
 defaultImageTag: 0.48.0
@@ -14,8 +65,7 @@ image:
   repository: ""
   name: operator
   tag: ""
-  # imagePullSecrets:
-  #   - name: secretname
+
 logVolume: co-config-volume
 logConfigMap: strimzi-cluster-operator
 logConfiguration: ""
@@ -25,9 +75,7 @@ operationTimeoutMs: 300000
 kubernetesServiceDnsDomain: cluster.local
 featureGates: ""
 tmpDirSizeLimit: 1Mi
-
 extraEnvs: []
-
 tolerations: []
 affinity: {}
 annotations: {}
@@ -36,101 +84,22 @@ nodeSelector: {}
 deploymentAnnotations: {}
 deploymentStrategy: {}
 priorityClassName: ""
-
 podSecurityContext: {}
 securityContext: {}
-
 rbac:
   create: true
 serviceAccountCreate: true
 serviceAccount: strimzi-cluster-operator
-
 leaderElection:
   enable: true
-
 podDisruptionBudget:
   enabled: false
   minAvailable: 1
   maxUnavailable:
   unhealthyPodEvictionPolicy: IfHealthyBudget
-
 dashboards:
   enabled: false
-  namespace: ~
-  label: grafana_dashboard
-  labelValue: "1"
-  annotations: {}
-  extraLabels: {}
 
-# Docker images that operator uses to provision various components of Strimzi.
-kafka:
-  image:
-    registry: ""
-    repository: ""
-    name: kafka
-    tagPrefix: ""
-kafkaConnect:
-  image:
-    registry: ""
-    repository: ""
-    name: kafka
-    tagPrefix: ""
-topicOperator:
-  image:
-    registry: ""
-    repository: ""
-    name: operator
-    tag: ""
-userOperator:
-  image:
-    registry:
-    repository:
-    name: operator
-    tag: ""
-kafkaInit:
-  image:
-    registry: ""
-    repository: ""
-    name: operator
-    tag: ""
-kafkaBridge:
-  image:
-    registry: ""
-    repository:
-    name: kafka-bridge
-    tag: 0.33.1
-kafkaExporter:
-  image:
-    registry: ""
-    repository: ""
-    name: kafka
-    tagPrefix: ""
-kafkaMirrorMaker2:
-  image:
-    registry: ""
-    repository: ""
-    name: kafka
-    tagPrefix: ""
-cruiseControl:
-  image:
-    registry: ""
-    repository: ""
-    name: kafka
-    tagPrefix: ""
-kanikoExecutor:
-  image:
-    registry: ""
-    repository: ""
-    name: kaniko-executor
-    tag: ""
-mavenBuilder:
-  image:
-    registry: ""
-    repository: ""
-    name: maven-builder
-    tag: ""
-
-# Modified resource settings for the operator itself
 resources:
   limits:
     memory: 384Mi
@@ -148,53 +117,3 @@ readinessProbe:
 
 createGlobalResources: true
 createAggregateRoles: false
-labelsExclusionPattern: ""
-generateNetworkPolicy: true
-connectBuildTimeoutMs: 300000
-generatePodDisruptionBudget: true
-
-# --- Custom Resources Configuration ---
-# These values are for the Kafka cluster, topic, and user resources
-# that will be created by the operator.
-
-kafkaCluster:
-  enabled: true
-  namespace: kafka
-  name: kafka
-  version: 4.1.0
-  image: quay.io/strimzi/kafka:0.48.0-kafka-4.1.0
-  nodePools:
-    - name: combined
-      replicas: 1
-      roles: [broker, controller]
-      storage:
-        type: ephemeral
-      resources:
-        requests: { cpu: 400m, memory: 512Mi }
-        limits: { cpu: 1000m, memory: 1Gi }
-  config:
-    auto.create.topics.enable: "true"
-    offsets.topic.replication.factor: 1
-    transaction.state.log.replication.factor: 1
-    transaction.state.log.min.isr: 1
-    controller.quorum.voters: 0@kafka-combined-0.kafka-kafka-brokers.kafka.svc:9093
-  # --- To pin Kafka pods to a specific node, uncomment the following: ---
-  # nodeSelector:
-  #   kubernetes.io/hostname: active-bank-k8s-master
-  entityOperator:
-    resources:
-      requests: { cpu: 200m, memory: 384Mi }
-      limits: { cpu: 500m, memory: 768Mi }
-  metrics:
-    enabled: true
-
-kafkaTopic:
-  enabled: true
-  name: my-topic
-  partitions: 3
-  replicas: 1
-
-kafkaUser:
-  enabled: true
-  name: my-user
-
