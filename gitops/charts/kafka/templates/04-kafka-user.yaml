@@ -1,0 +1,27 @@
+{{- if .Values.kafkaUser.enabled }}
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: {{ .Values.kafkaUser.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafkaCluster.name }}
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      # ACLs for the user to produce/consume from the topic
+      - resource:
+          type: topic
+          name: {{ .Values.kafkaTopic.name }}
+          patternType: literal
+        operation: All
+      # ACLs for the user to be part of a consumer group
+      - resource:
+          type: group
+          name: {{ .Values.kafkaUser.name }}
+          patternType: literal
+        operation: All
+{{- end }}

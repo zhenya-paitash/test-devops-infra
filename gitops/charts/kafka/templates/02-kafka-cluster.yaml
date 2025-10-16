@@ -1,0 +1,84 @@
+{{- if .Values.kafkaCluster.enabled }}
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: {{ .Values.kafkaCluster.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  kafka:
+    version: {{ .Values.kafkaCluster.version }}
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    config:
+{{ toYaml .Values.kafkaCluster.config | indent 6 }}
+    storage:
+      type: ephemeral # This is a dummy value, real config is in the node pool
+    {{- if .Values.kafkaCluster.metrics.enabled }}
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: {{ printf "%s-metrics" .Values.kafkaCluster.name }}
+          key: kafka-metrics-config.yml
+    {{- end }}
+  entityOperator:
+    topicOperator:
+      resources:
+{{ toYaml .Values.kafkaCluster.entityOperator.resources | indent 8 }}
+    userOperator:
+      resources:
+{{ toYaml .Values.kafkaCluster.entityOperator.resources | indent 8 }}
+  template:
+    bootstrapService:
+      metadata:
+        # This ensures the service is named to match your microservices' configuration
+        name: {{ .Values.kafkaCluster.name }}
+---
+{{- range .Values.kafkaCluster.nodePools }}
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    strimzi.io/cluster: {{ $.Values.kafkaCluster.name }}
+spec:
+  replicas: {{ .replicas }}
+  roles:
+{{ toYaml .roles | indent 4 }}
+  storage:
+{{ toYaml .storage | indent 4 }}
+  {{- if $.Values.kafkaCluster.nodeSelector }}
+  template:
+    pod:
+      spec:
+        nodeSelector:
+{{ toYaml $.Values.kafkaCluster.nodeSelector | indent 10 }}
+  {{- end }}
+  resources:
+{{ toYaml .resources | indent 4 }}
+---
+{{- end }}
+{{- if .Values.kafkaCluster.metrics.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-metrics" .Values.kafkaCluster.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: strimzi
+data:
+  kafka-metrics-config.yml: |-
+    # This configuration is used by the JMX Exporter. Default settings are used.
+    # See: https://github.com/prometheus/jmx_exporter
+    lowercaseOutputName: true
+    lowercaseOutputLabelNames: true
+{{- end }}
+{{- end }}
