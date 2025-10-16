@@ -1,0 +1,17 @@
+---
+- name: Apply Kubernetes configuration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Read manifest file
+      set_fact:
+        manifest_content: "{{ lookup('file', '{{ playbook_dir }}/../../../gitops/bootstrap/root-app.yaml') }}"
+      delegate_to: localhost
+
+    - name: Apply Kubernetes resources
+      # kubectl apply -f gitops/bootstrap/root-app.yaml
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ manifest_content | from_yaml }}"
