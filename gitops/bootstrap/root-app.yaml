@@ -22,7 +22,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/zhenya-paitash/test-devops-infra.git
-        targetRevision: main
+        targetRevision: dev
         path: '{{chartPath}}' # Подставляется из элемента списка
         helm:
           valueFiles:

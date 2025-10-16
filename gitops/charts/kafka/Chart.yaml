@@ -1,5 +1,21 @@
 apiVersion: v2
-name: kafka
-description: A Helm chart for deploying Strimzi Kafka Operator and Kafka clusters for Active Bank
-version: 0.1.0
-appVersion: "0.48.0" # Strimzi version, we can update this
+appVersion: 0.48.0
+description: 'Strimzi: Apache Kafka running on Kubernetes'
+home: https://strimzi.io/
+icon: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/documentation/logo/strimzi_logo.png
+keywords:
+- kafka
+- queue
+- stream
+- event
+- messaging
+- datastore
+- topic
+maintainers:
+- email: cncf-strimzi-maintainers@lists.cncf.io
+  name: Strimzi Project Maintainers
+  url: https://github.com/strimzi/governance
+name: strimzi-kafka-operator
+sources:
+- https://github.com/strimzi/strimzi-kafka-operator
+version: 0.48.0
