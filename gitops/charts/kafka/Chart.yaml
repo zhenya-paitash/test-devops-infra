@@ -1,5 +1,0 @@
-apiVersion: v2
-name: kafka
-description: A Helm chart for deploying Strimzi Kafka Operator and Kafka clusters for Active Bank
-version: 0.1.0
-appVersion: "0.48.0" # Strimzi version, we can update this
