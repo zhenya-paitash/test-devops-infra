@@ -1,0 +1,6 @@
+---
+- name: Install and configure Kafka
+  hosts: kafka_nodes
+  become: true
+  roles:
+    - kafka
