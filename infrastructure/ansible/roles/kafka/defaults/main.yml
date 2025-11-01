@@ -61,3 +61,14 @@ kafka_node_roles:
 kafka_offsets_topic_replication_factor: 1
 kafka_transaction_state_log_replication_factor: 1
 kafka_transaction_state_log_min_isr: 1
+
+## Kafka Exporter
+kafka_exporter_install: true
+kafka_exporter_version: "1.7.0"
+kafka_exporter_user: kafka-exporter
+kafka_exporter_group: kafka-exporter
+kafka_exporter_port: 9308
+kafka_exporter_kafka_server: "localhost:9092"
+kafka_exporter_download_url: "https://github.com/danielqsj/kafka_exporter/releases/download/v{{ kafka_exporter_version }}/kafka_exporter-{{ kafka_exporter_version }}.linux-amd64.tar.gz"
+kafka_exporter_binary_path: /usr/local/bin/kafka_exporter
+kafka_exporter_additional_opts: ""

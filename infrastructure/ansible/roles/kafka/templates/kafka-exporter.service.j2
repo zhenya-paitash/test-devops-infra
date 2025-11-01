@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Prometheus Exporter for Kafka
+Wants=network-online.target
+After=network-online.target
+After=kafka.service
+
+[Service]
+User={{ kafka_exporter_user }}
+Group={{ kafka_exporter_group }}
+Type=simple
+ExecStart={{ kafka_exporter_binary_path }} --kafka.server={{ kafka_exporter_kafka_server }} --web.listen-address=:{{ kafka_exporter_port }} {{ kafka_exporter_additional_opts }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

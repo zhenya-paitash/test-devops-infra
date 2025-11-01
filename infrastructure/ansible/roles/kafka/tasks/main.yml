@@ -317,3 +317,8 @@
 #   ansible.builtin.command: /opt/kafka/bin/kafka-topics.sh --alter --zookeeper localhost:2181 --topic {{ item.0.name }} --partitions {{ item.0.partitions }}
 #   when: item.0.partitions | default(12) | int < item.1.partitions | int and item.0.partitions is defined and kafka_update_partition_count | bool
 #   loop: "{{ kafka_topics | zip(kafka__reg_topic_partitions_set | default([])) | list }}"
+
+- name: Include exporter tasks
+  ansible.builtin.include_tasks: exporter.yml
+  when: kafka_exporter_install | bool
+
