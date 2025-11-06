@@ -58,9 +58,12 @@ kafka_node_roles:
   - controller
 
 ## Internal topic settings
-kafka_offsets_topic_replication_factor: 1
-kafka_transaction_state_log_replication_factor: 1
-kafka_transaction_state_log_min_isr: 1
+# kafka_offsets_topic_replication_factor: 1
+# kafka_transaction_state_log_replication_factor: 1
+# kafka_transaction_state_log_min_isr: 1 # сколько реплик должны подтвердить запись
+kafka_offsets_topic_replication_factor: 3
+kafka_transaction_state_log_replication_factor: 3
+kafka_transaction_state_log_min_isr: 2 # сколько реплик должны подтвердить запись
 
 ## Kafka Exporter
 kafka_exporter_install: true

@@ -3,4 +3,4 @@
   hosts: kafka_nodes
   become: true
   roles:
-    - kafka
+    - install_kafka

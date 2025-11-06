@@ -1,0 +1,114 @@
+---
+- name: Cleanup | Stop and disable Kafka service
+  become: true
+  ansible.builtin.systemd:
+    name: kafka
+    state: stopped
+    enabled: false
+  ignore_errors: true
+
+- name: Cleanup | Stop and disable Kafka Exporter service
+  become: true
+  ansible.builtin.systemd:
+    name: kafka-exporter
+    state: stopped
+    enabled: false
+  when: remove_exporter | default(true)
+  ignore_errors: true
+
+- name: Cleanup | Remove Kafka Exporter artifacts
+  when: remove_exporter | default(true)
+  block:
+    - name: Remove kafka-exporter systemd service file
+      become: true
+      ansible.builtin.file:
+        path: /etc/systemd/system/kafka-exporter.service
+        state: absent
+
+    - name: Remove kafka-exporter binary
+      become: true
+      ansible.builtin.file:
+        path: "{{ kafka_exporter_binary_path }}"
+        state: absent
+
+- name: Cleanup | Remove Kafka artifacts
+  block:
+    - name: Remove kafka systemd service file
+      become: true
+      ansible.builtin.file:
+        path: /usr/lib/systemd/system/kafka.service
+        state: absent
+
+    - name: Reload systemd daemon
+      become: true
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Remove kafka sysconfig file
+      become: true
+      ansible.builtin.file:
+        path: /etc/sysconfig/kafka
+        state: absent
+
+    - name: Remove kafka data and log directories
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ kafka_log_dirs + [kafka_log_directory] }}"
+
+    - name: Remove kafka home symlink
+      become: true
+      ansible.builtin.file:
+        path: "{{ kafka_home }}"
+        state: absent
+
+    - name: Remove unpacked kafka directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ kafka_download_directory }}/kafka_{{ kafka_scala_version }}-{{ kafka_version }}"
+        state: absent
+
+    - name: Remove downloaded kafka archive
+      become: true
+      ansible.builtin.file:
+        path: "{{ kafka__download_destination }}"
+        state: absent
+
+- name: Cleanup | Remove users and groups
+  when: remove_user_and_group | default(true)
+  block:
+    - name: Remove kafka-exporter user
+      become: true
+      ansible.builtin.user:
+        name: "{{ kafka_exporter_user }}"
+        state: absent
+        force: true
+      when: remove_exporter | default(true)
+
+    - name: Remove kafka-exporter group
+      become: true
+      ansible.builtin.group:
+        name: "{{ kafka_exporter_group }}"
+        state: absent
+      when: remove_exporter | default(true)
+
+    - name: Remove kafka user
+      become: true
+      ansible.builtin.user:
+        name: "{{ kafka_user }}"
+        state: absent
+        force: true
+
+    - name: Remove kafka group
+      become: true
+      ansible.builtin.group:
+        name: "{{ kafka_user_group }}"
+        state: absent
+
+- name: Cleanup | Remove Java
+  become: true
+  ansible.builtin.package:
+    name: "{{ kafka__dependencies }}"
+    state: absent
+  when: remove_java | default(false)
