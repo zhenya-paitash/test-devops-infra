@@ -14,6 +14,12 @@ WorkingDirectory={{ kafka_home }}
 ExecStart={{ kafka_home }}/bin/kafka-server-start.sh {{ kafka__config_path }}
 ExecStop={{ kafka_home }}/bin/kafka-server-stop.sh {{ kafka__config_path }}
 Restart=always
+{% if kafka_cpu_quota is defined %}
+CPUQuota={{ kafka_cpu_quota }}
+{% endif %}
+{% if kafka_memory_limit is defined %}
+MemoryLimit={{ kafka_memory_limit }}
+{% endif %}
 
 [Install]
 WantedBy=multi-user.target

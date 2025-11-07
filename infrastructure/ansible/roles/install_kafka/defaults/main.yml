@@ -2,7 +2,7 @@
 kafka_user: kafka
 kafka_user_group: kafka
 kafka_home: /opt/kafka
-kafka_version: 4.0.0
+kafka_version: 4.0.0  # WARN: сейчас все приложения используют v3.7.0
 kafka_scala_version: 2.13
 kafka_java_version: 17
 kafka_install_dependencies: false
@@ -13,7 +13,6 @@ kafka_install_dependencies: false
 #   2A5DBC38 38C76347 F6865642 5C09202C D290CE91
 kafka_download_directory: /opt
 kafka_log_directory: /var/log/kafka # this is actual kafka service log desitnation. not to be confused with kafka logs
-kafka_replication_factor: 1
 kafka_heap_size: 1G
 kafka_opts: [] # this can be list or string
 # - -XX:NewSize=256m
@@ -42,10 +41,10 @@ kafka_listeners: []
 #  - CONTROLLER://:9093
 
 ## Log retention policy
-kafka_log_retention_hours: 24
-kafka_log_retention_bytes: 0 # when set to zero this setting is ignored
-kafka_log_retention_check_interval_ms: 300000
-kafka_log_segment_bytes: 1073741824
+kafka_log_retention_hours: 24 # хранить данные в топиках 24 часа и удалять
+kafka_log_retention_bytes: 0 # ограничения по размеру. Откл. Игннорировать
+kafka_log_retention_check_interval_ms: 300000 # проверять необходимость удаления каждые 5m.
+kafka_log_segment_bytes: 1073741824 # размер сегмента лога 1 ГБ (это 1024*1024*1024 байт)
 
 ## Log basics
 kafka_num_partitions: 1
@@ -57,17 +56,21 @@ kafka_node_roles:
   - broker
   - controller
 
+## Replication
+# kafka_replication_factor: 1 # INFO: сейчас не используется
+
 ## Internal topic settings
-# kafka_offsets_topic_replication_factor: 1
-# kafka_transaction_state_log_replication_factor: 1
-# kafka_transaction_state_log_min_isr: 1 # сколько реплик должны подтвердить запись
-kafka_offsets_topic_replication_factor: 3
-kafka_transaction_state_log_replication_factor: 3
-kafka_transaction_state_log_min_isr: 2 # сколько реплик должны подтвердить запись
+kafka_offsets_topic_replication_factor: 1
+kafka_transaction_state_log_replication_factor: 1
+kafka_transaction_state_log_min_isr: 1 # сколько реплик должны подтвердить запись
+# TODO: создать кластер
+# kafka_offsets_topic_replication_factor: 3
+# kafka_transaction_state_log_replication_factor: 3
+# kafka_transaction_state_log_min_isr: 2
 
 ## Kafka Exporter
 kafka_exporter_install: true
-kafka_exporter_version: "1.7.0"
+kafka_exporter_version: "1.9.0"  # WARN: stable 1.7.0
 kafka_exporter_user: kafka-exporter
 kafka_exporter_group: kafka-exporter
 kafka_exporter_port: 9308
@@ -75,3 +78,7 @@ kafka_exporter_kafka_server: "localhost:9092"
 kafka_exporter_download_url: "https://github.com/danielqsj/kafka_exporter/releases/download/v{{ kafka_exporter_version }}/kafka_exporter-{{ kafka_exporter_version }}.linux-amd64.tar.gz"
 kafka_exporter_binary_path: /usr/local/bin/kafka_exporter
 kafka_exporter_additional_opts: ""
+
+## Limits
+kafka_cpu_quota: "200%" # 2 ядра 
+kafka_memory_limit: "2G"
