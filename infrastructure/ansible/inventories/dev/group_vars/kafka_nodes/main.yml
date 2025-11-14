@@ -1,0 +1,16 @@
+# ┌───────────────────────────────────────────────────────────────────────────┐
+# │ @category   Ansible Group Variables                                       │
+# │ @scope      Переменные для группы [kafka_nodes] в окружении [dev]         │
+# │                                                                           │
+# │ @purpose    Переопределение дефолтных значений из роли 'install_kafka'    │
+# │             для установки лимитов по CPU и Memory.                        │
+# └───────────────────────────────────────────────────────────────────────────┘
+
+# Переменные для настройки кластера Kafka (когда потребуется)
+# kafka_offsets_topic_replication_factor: 3
+# kafka_transaction_state_log_replication_factor: 3
+# kafka_transaction_state_log_min_isr: 2
+
+# Лимиты ресурсов для Kafka
+kafka_cpu_quota: "200%" # 2 ядра
+kafka_memory_limit: "2G"
