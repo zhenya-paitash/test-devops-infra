@@ -1,0 +1,8 @@
+---
+# infrastructure/ansible/playbooks/install_jenkins_controller.yml
+
+- name: Install and configure Jenkins Controller
+  hosts: jenkins_nodes
+  become: true
+  roles:
+    - role: install_jenkins_controller

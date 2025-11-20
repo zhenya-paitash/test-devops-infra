@@ -1,0 +1,30 @@
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              scope: GLOBAL
+              id: "k8s-service-account"
+              secret: "{{ jenkins_k8s_service_account_token }}"
+              description: "Kubernetes Service Account Token for Jenkins"
+
+jenkins:
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        serverUrl: "{{ jenkins_k8s_cluster_url }}"
+        skipTlsVerify: true
+        namespace: "{{ jenkins_k8s_namespace }}"
+        jenkinsUrl: "http://{{ ansible_default_ipv4.address }}:{{ jenkins_http_port }}"
+        credentialsId: "k8s-service-account"
+        containerCap: 10
+        connectTimeout: 5
+        readTimeout: 15
+        templates:
+          - name: "{{ jenkins_k8s_agent_name }}"
+            label: "k8s-agent"
+            containers:
+              - name: "jnlp"
+                image: "{{ jenkins_k8s_agent_image }}"
+                args: '${computer.jnlpmac} ${computer.name}'
+                workingDir: "/home/jenkins/agent"

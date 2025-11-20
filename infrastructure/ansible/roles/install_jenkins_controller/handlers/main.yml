@@ -1,0 +1,7 @@
+---
+# infrastructure/ansible/roles/install_jenkins_controller/handlers/main.yml
+
+- name: restart jenkins
+  community.docker.docker_compose_v2:
+    project_src: "{{ jenkins_home_on_host }}"
+    state: restarted

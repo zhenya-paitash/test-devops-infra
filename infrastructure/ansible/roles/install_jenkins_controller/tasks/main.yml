@@ -1,0 +1,20 @@
+---
+# infrastructure/ansible/roles/install_jenkins_controller/tasks/main.yml
+
+- name: Install prerequisites on the host
+  include_tasks: install-prereqs.yml
+
+- name: Set up host directories and user
+  include_tasks: setup-host.yml
+
+- name: Configure Kubernetes for Jenkins Agents
+  delegate_to: localhost
+  become: false
+  block:
+    - include_tasks: setup-k8s.yml
+
+- name: Configure JCasC and Docker Compose
+  include_tasks: configure-jcasc.yml
+
+- name: Run Jenkins Controller
+  include_tasks: run-jenkins.yml

@@ -1,0 +1,80 @@
+---
+# tasks/setup-k8s.yml - Corrected version to run on localhost
+
+- name: Create namespace for Jenkins agents
+  kubernetes.core.k8s:
+    name: "{{ jenkins_k8s_namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create ServiceAccount for Jenkins
+  kubernetes.core.k8s:
+    name: "jenkins-agent" # Hardcoding name as it's specific to this setup
+    namespace: "{{ jenkins_k8s_namespace }}"
+    api_version: v1
+    kind: ServiceAccount
+    state: present
+
+- name: Create Role for Jenkins agents to manage pods
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: jenkins-agent-role
+        namespace: "{{ jenkins_k8s_namespace }}"
+      rules:
+      - apiGroups: [""]
+        resources: ["pods", "pods/exec", "pods/log"]
+        verbs: ["create", "delete", "get", "list", "patch", "watch"]
+
+- name: Create RoleBinding for the ServiceAccount
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: jenkins-agent-rolebinding
+        namespace: "{{ jenkins_k8s_namespace }}"
+      subjects:
+        - kind: ServiceAccount
+          name: "jenkins-agent"
+          namespace: "{{ jenkins_k8s_namespace }}"
+      roleRef:
+        kind: Role
+        name: jenkins-agent-role
+        apiGroup: rbac.authorization.k8s.io
+
+# Note: In modern Kubernetes, tokens are not automatically created for SAs.
+# This task explicitly creates a secret of type 'kubernetes.io/service-account-token' for the SA.
+- name: Ensure a secret for the ServiceAccount token exists
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: jenkins-agent-token
+        namespace: "{{ jenkins_k8s_namespace }}"
+        annotations:
+          kubernetes.io/service-account.name: "jenkins-agent"
+      type: kubernetes.io/service-account-token
+  register: sa_secret
+
+- name: Get the ServiceAccount token from the secret
+  ansible.builtin.shell: >
+    kubectl get secret -n {{ jenkins_k8s_namespace }} jenkins-agent-token -o jsonpath='{.data.token}' | base64 --decode
+  register: sa_token_result
+  changed_when: false
+
+- name: Get Kubernetes API Server URL from current context
+  ansible.builtin.command: kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+  register: kube_api_server_url
+  changed_when: false
+
+# Set facts to be used in the main playbook for the template
+- name: Set Kubernetes configuration facts
+  ansible.builtin.set_fact:
+    jenkins_k8s_cluster_url: "{{ kube_api_server_url.stdout }}"
+    jenkins_k8s_service_account_token: "{{ sa_token_result.stdout }}"
+    cacheable: true
