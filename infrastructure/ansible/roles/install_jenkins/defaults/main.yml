@@ -1,19 +1,32 @@
 ---
 # infrastructure/ansible/roles/install_jenkins_controller/defaults/main.yml
 
-# User and Group settings
-jenkins_user: "jenkins"
-jenkins_group: "jenkins"
-# Optionally enforce a specific UID/GID. Leave empty for auto-assignment.
-jenkins_uid: 1002
-jenkins_gid: 1002
-
 # Jenkins Controller Settings
 jenkins_image: "jenkins/jenkins:lts-jdk17"
 jenkins_container_name: "jenkins-controller"
 jenkins_home_on_host: "/var/jenkins_home"
 jenkins_http_port: 8080
 jenkins_jnlp_port: 50000
+
+# -----------------------------------------------------------------------------
+# Docker Container Settings
+#
+# These settings can be overridden in your inventory group_vars.
+# -----------------------------------------------------------------------------
+
+# --- Resource Limits ---
+# To enable resource limits, set to true.
+jenkins_resource_limits_enabled: true
+
+# CPU and Memory limits for the container.
+jenkins_cpu_limit: '1.0'
+jenkins_mem_limit: '2g'
+jenkins_mem_reservation: '1g'
+
+# --- JVM Options ---
+# Defines JVM arguments, primarily for heap size.
+# The setup wizard is enabled by default (no flag to disable it).
+jenkins_java_opts: "-Xmx1g"
 
 # JCasC (Jenkins Configuration as Code)
 jenkins_casc_configs_dir: "{{ jenkins_home_on_host }}/casc_configs"

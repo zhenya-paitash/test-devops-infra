@@ -10,3 +10,13 @@ services:
     restart: unless-stopped
     environment:
       - CASC_JENKINS_CONFIG=/var/jenkins_home/jenkins.yaml
+      - JAVA_OPTS={{ jenkins_java_opts }}
+{% if jenkins_resource_limits_enabled %}
+    deploy:
+      resources:
+        limits:
+          cpus: '{{ jenkins_cpu_limit | default("1.0") }}'
+          memory: '{{ jenkins_mem_limit | default("2g") }}'
+        reservations:
+          memory: '{{ jenkins_mem_reservation | default("1g") }}'
+{% endif %}

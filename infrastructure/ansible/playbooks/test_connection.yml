@@ -35,13 +35,13 @@
       - name: "4.1 Create artifacts directory"
         run_once: true
         ansible.builtin.file:
-          path: "{{ playbook_dir }}/../artifacts/facts"
+          path: "{{ playbook_dir }}/../artifacts/gather_facts"
           state: directory
 
       - name: "4.2 Save Key Facts to Local File"
         ansible.builtin.copy:
           content: "{{ ansible_facts | to_nice_json }}"
-          dest: "{{ playbook_dir }}/../artifacts/facts/{{ inventory_hostname }}.json"
+          dest: "{{ playbook_dir }}/../artifacts/gather_facts/{{ inventory_hostname }}.json"
 
   post_tasks:
     - name: "✅ Test Connection and Gather Host Information DONE!"
