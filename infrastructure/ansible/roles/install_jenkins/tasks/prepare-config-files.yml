@@ -1,8 +1,6 @@
 ---
-# infrastructure/ansible/roles/install_jenkins_controller/tasks/configure-jcasc.yml
-
-- name: Create docker-compose.yml from template
-  template:
+- name: "CONFIG | Create docker-compose.yml from template"
+  ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ jenkins_home_on_host }}/docker-compose.yml"
     owner: '1000'
@@ -10,8 +8,8 @@
     mode: '0644'
   notify: restart jenkins
 
-- name: Create Jenkins JCasC config file in root of JENKINS_HOME
-  template:
+- name: "CONFIG | Create Jenkins JCasC file from template"
+  ansible.builtin.template:
     src: jenkins.yaml.j2
     dest: "{{ jenkins_home_on_host }}/jenkins.yaml"
     owner: '1000'
