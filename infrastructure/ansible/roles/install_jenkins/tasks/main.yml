@@ -3,8 +3,8 @@
 
 - name: "PREFLIGHT | Check for insecure default password"
   ansible.builtin.fail:
-    msg: "FATAL: Default password 'CHANGE-ME' is being used. Please set 'jenkins_admin_password' to a secure value."
-  when: jenkins_admin_password == "CHANGE-ME"
+    msg: "FATAL: Default password 'DEFAULT' is being used. Please set 'jenkins_admin_password' to a secure value. Example: -e jenkins_admin_password=PASSWORD"
+  when: jenkins_admin_password == "DEFAULT"
 
 - name: "SETUP | Install prerequisites (Docker)"
   include_tasks: install-prereqs.yml

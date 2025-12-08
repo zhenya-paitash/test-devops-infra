@@ -9,7 +9,7 @@ jenkins_jnlp_port: 50000
 
 # JCasC Admin User
 jenkins_admin_user: "admin"
-jenkins_admin_password: "CHANGE-ME"
+jenkins_admin_password: "DEFAULT"
 
 # -----------------------------------------------------------------------------
 # Ansible & Docker Settings

@@ -6,4 +6,5 @@
 ---
 
 jenkins_admin_password: admin
+jenkins_force_clean_install: true
 
