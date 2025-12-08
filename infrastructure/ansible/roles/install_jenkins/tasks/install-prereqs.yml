@@ -4,3 +4,4 @@
 - name: Include install_docker role
   ansible.builtin.include_role:
     name: install_docker
+  tags: [docker, setup]

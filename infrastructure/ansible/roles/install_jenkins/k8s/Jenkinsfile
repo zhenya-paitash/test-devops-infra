@@ -1,0 +1,106 @@
+pipeline {
+    agent {
+        kubernetes {
+            label 'bun-app-pod'
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  securityContext:
+    runAsUser: 1000
+    fsGroup: 1000
+  containers:
+  - name: jnlp
+    image: "jenkins/inbound-agent:jdk25"
+    args: ["$(JENKINS_SECRET)", "$(JENKINS_NAME)"]
+    volumeMounts:
+    - name: "agent-cache"
+      mountPath: "/cache"
+  - name: bun
+    image: "oven/bun:latest"
+    command: ["cat"]
+    tty: true
+    volumeMounts:
+    - name: "agent-cache"
+      mountPath: "/cache"
+  volumes:
+  - name: "agent-cache"
+    persistentVolumeClaim:
+      claimName: "jenkins-agent-cache-pvc"
+'''
+        }
+    }
+    
+    stages {
+        stage('Initialize & Create Server') {
+            steps {
+                container('bun') {
+                    sh 'bun init -y'
+                    writeFile(
+                        file: 'index.ts',
+                        text: '''
+const server = Bun.serve({
+  port: 3000,
+  fetch(request) {
+    return new Response("Welcome to Bun!");
+  },
+});
+
+console.log(`Listening on ${server.url}`);
+'''
+                    )
+                }
+            }
+        }
+
+        stage('Start Server') {
+            steps {
+                container('bun') {
+                    echo "--- Starting Bun server in background ---"
+                    // Запускаем сервер в фоне и сохраняем его PID в файл
+                    sh 'bun run index.ts & echo $! > bun.pid'
+                }
+            }
+        }
+        
+        stage('Test Server') {
+            steps {
+                container('bun') {
+                    sh 'sleep 10'
+                    echo "--- Checking server response ---"
+                    // Делаем запрос и сохраняем лог в кеш на PVC
+                    sh '''
+                        set -e
+                        TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+                        CACHE_DIR="/cache"
+                        LOG_FILE="$CACHE_DIR/curl-$TIMESTAMP.log"
+
+                        RESPONSE=$(bun -e 'const res = await fetch("http://localhost:3000"); console.log(await res.text())')
+                        
+                        echo "✅ Server responded: $RESPONSE"
+                        echo "$RESPONSE" > $LOG_FILE
+                        
+                        # Проверяем, что ответ корректный
+                        if ! echo "$RESPONSE" | grep -q "Welcome to Bun!"; then
+                            echo "❌ ERROR: Unexpected server response!"
+                            exit 1
+                        fi
+                        
+                        echo "--- Log file created in PV cache: ---"
+                        ls -l $LOG_FILE
+                    '''
+                }
+            }
+        }
+
+        stage('Stop Server') {
+            steps {
+                container('bun') {
+                    echo "--- Stopping server ---"
+                    // Читаем PID из файла и корректно останавливаем процесс
+                    sh 'kill $(cat bun.pid)'
+                }
+            }
+        }
+    }
+}

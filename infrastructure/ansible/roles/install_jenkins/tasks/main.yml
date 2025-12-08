@@ -1,20 +1,34 @@
 ---
-# infrastructure/ansible/roles/install_jenkins_controller/tasks/main.yml
+# infrastructure/ansible/roles/install_jenkins/tasks/main.yml
 
-- name: Install prerequisites on the host
+- name: "PREFLIGHT | Check for insecure default password"
+  ansible.builtin.fail:
+    msg: "FATAL: Default password 'CHANGE-ME' is being used. Please set 'jenkins_admin_password' to a secure value."
+  when: jenkins_admin_password == "CHANGE-ME"
+
+- name: "SETUP | Install prerequisites (Docker)"
   include_tasks: install-prereqs.yml
+  tags: [jenkins, setup, docker]
 
-- name: Set up host directories and user
+- name: "SETUP | Create Jenkins home directory on host"
   include_tasks: setup-host.yml
+  tags: [jenkins, setup, config]
 
-- name: Configure Kubernetes for Jenkins Agents
+- name: "SETUP | Configure Kubernetes resources for Jenkins Agents"
   delegate_to: localhost
   become: false
   block:
     - include_tasks: setup-k8s.yml
+  tags: [jenkins, setup, k8s]
 
-- name: Configure JCasC and Docker Compose
-  include_tasks: configure-jcasc.yml
+- name: "BUILD | Build custom Jenkins image"
+  include_tasks: build-image.yml
+  tags: [jenkins, build]
 
-- name: Run Jenkins Controller
+- name: "CONFIG | Prepare host configuration files (compose, JCasC)"
+  include_tasks: prepare-config-files.yml
+  tags: [jenkins, config]
+
+- name: "RUN | Run Jenkins Controller from custom image"
   include_tasks: run-jenkins.yml
+  tags: [jenkins, run]

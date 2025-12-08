@@ -1,0 +1,15 @@
+# Use the same base image as defined in variables
+FROM {{ jenkins_image }}
+
+# Switch to root user to copy files and set permissions
+USER root
+
+# Copy plugins list into the reference directory
+COPY --chown=jenkins:jenkins plugins.txt /usr/share/jenkins/ref/plugins.txt
+
+# Run the plugin installation using the plugin manager JAR
+RUN rm -rf /root/.cache/jenkins-plugin-management && \
+    java -jar /opt/jenkins-plugin-manager.jar --plugin-file /usr/share/jenkins/ref/plugins.txt
+
+# Switch back to the jenkins user
+USER jenkins

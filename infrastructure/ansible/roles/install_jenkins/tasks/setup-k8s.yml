@@ -10,7 +10,7 @@
 
 - name: Create ServiceAccount for Jenkins
   kubernetes.core.k8s:
-    name: "jenkins-agent" # Hardcoding name as it's specific to this setup
+    name: "{{ jenkins_k8s_service_account_name }}"
     namespace: "{{ jenkins_k8s_namespace }}"
     api_version: v1
     kind: ServiceAccount
@@ -22,7 +22,7 @@
       apiVersion: rbac.authorization.k8s.io/v1
       kind: Role
       metadata:
-        name: jenkins-agent-role
+        name: "{{ jenkins_k8s_agent_role_name }}"
         namespace: "{{ jenkins_k8s_namespace }}"
       rules:
       - apiGroups: [""]
@@ -35,15 +35,15 @@
       apiVersion: rbac.authorization.k8s.io/v1
       kind: RoleBinding
       metadata:
-        name: jenkins-agent-rolebinding
+        name: "{{ jenkins_k8s_agent_role_binding_name }}"
         namespace: "{{ jenkins_k8s_namespace }}"
       subjects:
         - kind: ServiceAccount
-          name: "jenkins-agent"
+          name: "{{ jenkins_k8s_service_account_name }}"
           namespace: "{{ jenkins_k8s_namespace }}"
       roleRef:
         kind: Role
-        name: jenkins-agent-role
+        name: "{{ jenkins_k8s_agent_role_name }}"
         apiGroup: rbac.authorization.k8s.io
 
 # Note: In modern Kubernetes, tokens are not automatically created for SAs.
@@ -54,16 +54,16 @@
       apiVersion: v1
       kind: Secret
       metadata:
-        name: jenkins-agent-token
+        name: "{{ jenkins_k8s_agent_token_name }}"
         namespace: "{{ jenkins_k8s_namespace }}"
         annotations:
-          kubernetes.io/service-account.name: "jenkins-agent"
+          kubernetes.io/service-account.name: "{{ jenkins_k8s_service_account_name }}"
       type: kubernetes.io/service-account-token
   register: sa_secret
 
 - name: Get the ServiceAccount token from the secret
   ansible.builtin.shell: >
-    kubectl get secret -n {{ jenkins_k8s_namespace }} jenkins-agent-token -o jsonpath='{.data.token}' | base64 --decode
+    kubectl get secret -n {{ jenkins_k8s_namespace }} {{ jenkins_k8s_agent_token_name }} -o jsonpath='{.data.token}' | base64 --decode
   register: sa_token_result
   changed_when: false
 

@@ -3,28 +3,12 @@
   hosts: jenkins_nodes
   become: true
 
+  pre_tasks:
+    - name: "Wipe Jenkins home contents to ensure clean install"
+      ansible.builtin.shell: "rm -rf /var/jenkins_home/* /var/jenkins_home/.*"
+      args:
+        warn: false
+      when: jenkins_force_clean_install | bool
+
   roles:
     - role: install_jenkins
-
-  tasks:
-    - name: "Wait for initialAdminPassword file to appear"
-      ansible.builtin.wait_for:
-        path: "/var/jenkins_home/secrets/initialAdminPassword"
-        timeout: 120
-      delegate_to: "{{ inventory_hostname }}"
-
-    - name: "Read initialAdminPassword"
-      ansible.builtin.slurp:
-        src: "/var/jenkins_home/secrets/initialAdminPassword"
-      register: initial_admin_password_file
-      delegate_to: "{{ inventory_hostname }}"
-
-    - name: "Display initialAdminPassword"
-      ansible.builtin.debug:
-        msg:
-          - "------------------------------------------------------------------"
-          - "Initial Jenkins admin password:"
-          - "{{ initial_admin_password_file.content | b64decode }}"
-          - "Please use this password to unlock Jenkins."
-          - "------------------------------------------------------------------"
-      delegate_to: localhost
