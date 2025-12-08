@@ -66,7 +66,7 @@ jenkins:
                         cpu: "500m"
                     volumeMounts:
                       - name: "global-cache"
-                        mountPath: "{{ jenkins_agent_pvc_mount_path }}"
+                        mountPath: "{{ jenkins_k8s_pvc_mount_path }}"
                         readOnly: false
                   - name: build-tools
                     image: "{{ jenkins_k8s_agent_image }}"
@@ -83,12 +83,12 @@ jenkins:
                         cpu: "2000m"
                     volumeMounts:
                       - name: "global-cache"
-                        mountPath: "{{ jenkins_agent_pvc_mount_path }}"
+                        mountPath: "{{ jenkins_k8s_pvc_mount_path }}"
                         readOnly: false
                 volumes:
                   - name: "global-cache"
                     persistentVolumeClaim:
-                      claimName: "{{ jenkins_agent_pvc_name }}"
+                      claimName: "{{ jenkins_k8s_pvc_name }}"
           - name: "{{ jenkins_k8s_generic_agent_name }}"
             label: "{{ jenkins_k8s_generic_agent_label }}"
             nodeUsageMode: EXCLUSIVE
@@ -114,7 +114,7 @@ jenkins:
                         cpu: "500m"
                     volumeMounts:
                       - name: "global-cache"
-                        mountPath: "{{ jenkins_agent_pvc_mount_path }}"
+                        mountPath: "{{ jenkins_k8s_pvc_mount_path }}"
                         readOnly: false
                   - name: shell
                     image: "{{ jenkins_k8s_generic_agent_image }}"
@@ -131,12 +131,12 @@ jenkins:
                         cpu: "100m"
                     volumeMounts:
                       - name: "global-cache"
-                        mountPath: "{{ jenkins_agent_pvc_mount_path }}"
+                        mountPath: "{{ jenkins_k8s_pvc_mount_path }}"
                         readOnly: false
                 volumes:
                   - name: "global-cache"
                     persistentVolumeClaim:
-                      claimName: "{{ jenkins_agent_pvc_name }}"
+                      claimName: "{{ jenkins_k8s_pvc_name }}"
 
 unclassified:
   location:

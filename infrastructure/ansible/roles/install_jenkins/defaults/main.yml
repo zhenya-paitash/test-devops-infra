@@ -34,13 +34,34 @@ jenkins_java_opts: "-Xmx1g -Djenkins.install.runSetupWizard=false"
 
 # -----------------------------------------------------------------------------
 # @section     Настройки кэширования для Kubernetes агентов
-# @description Параметры для PersistentVolumeClaim, используемого для кэша.
+# @description Параметры для создания и использования Persistent Volume Claim (PVC) для кэша агентов.
 # -----------------------------------------------------------------------------
-jenkins_agent_pvc_enabled: true
-jenkins_agent_pvc_name: "jenkins-agent-cache-pvc"
-jenkins_agent_pvc_size: "10Gi"
-jenkins_agent_pvc_storage_class: ""
-jenkins_agent_pvc_mount_path: "/home/jenkins/.m2/repository"
+# --- Общие настройки PVC ---
+jenkins_k8s_pvc_name: "jenkins-agent-cache-pvc"
+jenkins_k8s_pvc_size: "10Gi"
+jenkins_k8s_pvc_mount_path: "/home/jenkins/.m2/repository"
+jenkins_k8s_pvc_access_modes: [ReadWriteOnce] # Для NFS измените на [ReadWriteMany]
+
+# --- Динамическое создание PVC через StorageClass ---
+# Укажите имя вашего StorageClass (напр. 'nfs-client'). Если оставить пустым, будет использоваться
+# StorageClass по умолчанию в кластере, либо произойдет привязка к статическому PV без класса.
+jenkins_k8s_pvc_storage_class: ""
+
+# --- Управление созданием ресурсов ---
+# Установите в 'true', чтобы роль создавала PVC, используя настройки выше.
+# Если используется StorageClass, роль создаст только PVC.
+jenkins_k8s_create_pvc: false
+
+# Установите в 'true', чтобы роль создавала статический PV типа hostPath.
+# ВНИМАНИЕ: Используйте только для разработки на однонодовом кластере.
+# При 'true' также рекомендуется установить 'jenkins_k8s_create_pvc: true'.
+jenkins_k8s_create_pv: false
+
+# --- Настройки для статического hostPath PV (используются, если jenkins_k8s_create_pv: true) ---
+jenkins_k8s_pv_name: "jenkins-agent-cache-pv"
+jenkins_k8s_pv_host_path: "/mnt/jenkins-cache"
+jenkins_k8s_pv_host_path_owner: "1000"
+jenkins_k8s_pv_host_path_group: "1000"
 
 # -----------------------------------------------------------------------------
 # @section     Плагины

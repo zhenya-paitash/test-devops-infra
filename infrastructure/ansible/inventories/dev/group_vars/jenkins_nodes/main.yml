@@ -28,10 +28,14 @@ jenkins_mem_reservation: '1g'
 # @section     Настройки кэширования для Kubernetes агентов
 # @description Параметры для PersistentVolumeClaim, используемого для кэша.
 # -----------------------------------------------------------------------------
-jenkins_agent_pvc_enabled: true
-jenkins_agent_pvc_name: "jenkins-agent-cache-pvc"
-jenkins_agent_pvc_size: "10Gi"
-jenkins_agent_pvc_storage_class: "" # Укажите StorageClass, если необходимо
+# Включаем создание и PV (hostPath), и PVC для простоты развертывания в dev.
+jenkins_k8s_create_pv: true
+jenkins_k8s_create_pvc: true
+
+# Можно также переопределить другие параметры, например, режим доступа для NFS
+# jenkins_k8s_pvc_access_modes: [ReadWriteMany]
+# jenkins_k8s_pvc_storage_class: "nfs-client"
+
 
 # -----------------------------------------------------------------------------
 # @section     Дополнительные плагины

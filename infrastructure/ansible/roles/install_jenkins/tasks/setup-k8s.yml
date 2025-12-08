@@ -9,17 +9,36 @@
     suffix: k8s-manifests
   register: manifest_dir
 
-- name: "K8S-SETUP | Template Kubernetes manifest"
+- name: "K8S-SETUP | Template Kubernetes access manifest"
   ansible.builtin.template:
-    src: "resources.yaml.j2"
-    dest: "{{ manifest_dir.path }}/resources.yaml"
+    src: "k8s-access.yaml.j2"
+    dest: "{{ manifest_dir.path }}/k8s-access.yaml"
 
-- name: "K8S-SETUP | Apply Kubernetes manifest"
-  ansible.builtin.shell: "kubectl apply -f {{ manifest_dir.path }}/resources.yaml"
+- name: "K8S-SETUP | Apply Kubernetes access manifest"
+  ansible.builtin.shell: "kubectl apply -f {{ manifest_dir.path }}/k8s-access.yaml"
   changed_when: true
-  # Add a delay to ensure resources are created before we query them
-  async: 10
-  poll: 2
+
+- name: "K8S-SETUP | Template PersistentVolume manifest (if requested)"
+  ansible.builtin.template:
+    src: "k8s-pv.yaml.j2"
+    dest: "{{ manifest_dir.path }}/k8s-pv.yaml"
+  when: jenkins_k8s_create_pv | bool
+
+- name: "K8S-SETUP | Apply PersistentVolume manifest (if requested)"
+  ansible.builtin.shell: "kubectl apply -f {{ manifest_dir.path }}/k8s-pv.yaml"
+  changed_when: true
+  when: jenkins_k8s_create_pv | bool
+
+- name: "K8S-SETUP | Template PersistentVolumeClaim manifest (if requested)"
+  ansible.builtin.template:
+    src: "k8s-pvc.yaml.j2"
+    dest: "{{ manifest_dir.path }}/k8s-pvc.yaml"
+  when: jenkins_k8s_create_pvc | bool
+
+- name: "K8S-SETUP | Apply PersistentVolumeClaim manifest (if requested)"
+  ansible.builtin.shell: "kubectl apply -f {{ manifest_dir.path }}/k8s-pvc.yaml"
+  changed_when: true
+  when: jenkins_k8s_create_pvc | bool
 
 - name: "K8S-SETUP | Wait for ServiceAccount secret to be populated"
   ansible.builtin.shell: "kubectl get secret {{ jenkins_k8s_agent_token_name }} -n {{ jenkins_k8s_namespace }} -o jsonpath='{.data.token}'"

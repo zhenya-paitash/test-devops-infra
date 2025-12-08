@@ -14,6 +14,11 @@
   include_tasks: setup-host.yml
   tags: [jenkins, setup, config]
 
+- name: "SETUP | Prepare Kubernetes storage for agents (hostPath PV)"
+  include_tasks: setup-k8s-storage.yml
+  tags: [jenkins, setup, k8s, storage]
+  when: jenkins_k8s_create_pv | bool
+
 - name: "SETUP | Prepare Kubernetes resources via kubectl"
   tags: [jenkins, setup, k8s]
   run_once: true
