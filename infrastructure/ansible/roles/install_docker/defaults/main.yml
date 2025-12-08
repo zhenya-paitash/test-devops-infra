@@ -1,0 +1,35 @@
+---
+# infrastructure/ansible/roles/install_docker/defaults/main.yml
+
+# --- Installing Docker ---
+docker__channel: ["stable"]
+docker__version: "" # Empty means latest
+docker__state: "present" # present | latest
+
+# --- Installing Docker Compose v2 ---
+docker__compose_v2_version: "" # Empty means latest
+
+# --- Configuring the APT package manager ---
+docker__package_dependencies:
+  - "apt-transport-https"
+  - "ca-certificates"
+  - "gnupg" # Use gnupg for broader compatibility, example used gnupg2
+  - "software-properties-common" # Sometimes needed for add-apt-repository
+
+docker__architecture_map:
+  "x86_64": "amd64"
+  "aarch64": "arm64"
+  "aarch": "arm64"
+  "armhf": "armhf"
+  "armv7l": "armhf"
+
+# Dynamic distribution mapping for Pop!_OS and others
+_docker_repo_dist_name: "{{ 'ubuntu' if ansible_distribution == 'Pop!_OS' else ansible_distribution | lower }}"
+
+docker__apt_repository_url: "https://download.docker.com/linux/{{ _docker_repo_dist_name }}"
+docker__apt_key_checksum: "sha256:1500c1f56fa9e26b9b8f42452a553675796ade0807cdce11975eb98170b3a570" # From example role, ensure it's up to date if needed
+docker__apt_repository: >
+  deb [arch={{ docker__architecture_map[ansible_architecture] }}
+  signed-by=/etc/apt/keyrings/docker.asc]
+  {{ docker__apt_repository_url }}
+  {{ ansible_distribution_release }} {{ docker__channel | join(' ') }}

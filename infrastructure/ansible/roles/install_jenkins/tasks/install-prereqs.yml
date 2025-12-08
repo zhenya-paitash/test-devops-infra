@@ -1,0 +1,7 @@
+---
+# infrastructure/ansible/roles/install_jenkins_controller/tasks/install-prereqs.yml
+
+- name: Include install_docker role
+  ansible.builtin.include_role:
+    name: install_docker
+  tags: [docker, setup]

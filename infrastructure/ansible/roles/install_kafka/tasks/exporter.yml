@@ -1,0 +1,59 @@
+---
+- name: "Exporter | Tasks with privileges"
+  become: true
+  when: kafka_exporter_install | bool
+  block:
+    - name: "Exporter | Ensure {{ kafka_exporter_group }} group exists"
+      ansible.builtin.group:
+        name: "{{ kafka_exporter_group }}"
+        state: present
+        system: true
+
+    - name: "Exporter | Ensure {{ kafka_exporter_user }} user exists"
+      ansible.builtin.user:
+        name: "{{ kafka_exporter_user }}"
+        state: present
+        system: true
+        group: "{{ kafka_exporter_group }}"
+        createhome: false
+
+    - name: "Exporter | Download kafka_exporter binary"
+      ansible.builtin.get_url:
+        url: "{{ kafka_exporter_download_url }}"
+        dest: "/tmp/kafka_exporter-{{ kafka_exporter_version }}.linux-amd64.tar.gz"
+        mode: '0644'
+
+    - name: "Exporter | Unpack kafka_exporter binary"
+      ansible.builtin.unarchive:
+        src: "/tmp/kafka_exporter-{{ kafka_exporter_version }}.linux-amd64.tar.gz"
+        dest: "/tmp"
+        remote_src: true
+        creates: "/tmp/kafka_exporter-{{ kafka_exporter_version }}.linux-amd64/kafka_exporter"
+
+    - name: "Exporter | Install kafka_exporter binary"
+      ansible.builtin.copy:
+        src: "/tmp/kafka_exporter-{{ kafka_exporter_version }}.linux-amd64/kafka_exporter"
+        dest: "{{ kafka_exporter_binary_path }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+      notify: Restart Kafka Exporter
+
+    - name: "Exporter | Install Kafka Exporter service definition"
+      ansible.builtin.template:
+        src: kafka-exporter.service.j2
+        dest: /etc/systemd/system/kafka-exporter.service
+        mode: "0644"
+      notify: Restart Kafka Exporter
+
+    - name: "Exporter | Ensure Kafka Exporter service is enabled and started"
+      ansible.builtin.systemd:
+        name: kafka-exporter
+        enabled: true
+        state: started
+        daemon_reload: true
+
+- name: "Exporter | Flush handlers to apply service changes"
+  ansible.builtin.meta: flush_handlers
+  when: kafka_exporter_install | bool

@@ -1,0 +1,143 @@
+# Corrected JCasC structure based on official demos
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              scope: GLOBAL
+              id: "k8s-sa-token"
+              secret: "{{ jenkins_k8s_service_account_token }}"
+              description: "Service Account token for Kubernetes plugin"
+
+jenkins:
+  systemMessage: "Jenkins configured automatically by JCasC"
+  numExecutors: 0
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "{{ jenkins_admin_user }}"
+          password: "{{ jenkins_admin_password }}"
+  authorizationStrategy:
+    globalMatrix:
+      permissions:
+        - "Overall/Read:authenticated"
+        - "Job/Read:authenticated"
+        - "Job/Build:authenticated"
+        - "Overall/Administer:{{ jenkins_admin_user }}"
+        - "Overall/RunScripts:{{ jenkins_admin_user }}"
+  clouds:
+    - kubernetes:
+        name: "kubernetes"
+        serverUrl: "{{ k8s_api_server_url }}"
+        serverCertificate: "{{ k8s_ca_cert_data }}"
+        skipTlsVerify: false
+        namespace: "{{ jenkins_k8s_namespace }}"
+        jenkinsUrl: "http://{{ ansible_default_ipv4.address }}:{{ jenkins_http_port }}/"
+        jenkinsTunnel: "{{ jenkins_tunnel | default(ansible_default_ipv4.address + ':' + jenkins_jnlp_port | string) }}"
+        credentialsId: "k8s-sa-token"
+        containerCap: 10
+        retentionTimeout: 5
+        connectTimeout: 60
+        readTimeout: 60
+        templates:
+          - name: "{{ jenkins_k8s_agent_name }}"
+            label: "{{ jenkins_k8s_agent_label }}"
+            nodeUsageMode: EXCLUSIVE
+            yaml: |
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                labels:
+                  jenkins-agent: maven
+              spec:
+                securityContext:
+                  runAsUser: 1000
+                  fsGroup: 1000
+                containers:
+                  - name: jnlp
+                    image: "jenkins/inbound-agent:jdk25"
+                    resources:
+                      requests:
+                        memory: "128Mi"
+                        cpu: "100m"
+                      limits:
+                        memory: "256Mi"
+                        cpu: "500m"
+                    volumeMounts:
+                      - name: "global-cache"
+                        mountPath: "{{ jenkins_k8s_pvc_mount_path }}"
+                        readOnly: false
+                  - name: build-tools
+                    image: "{{ jenkins_k8s_agent_image }}"
+                    command:
+                      - cat
+                    tty: true
+                    workingDir: "/home/jenkins/agent"
+                    resources:
+                      requests:
+                        memory: "1Gi"
+                        cpu: "500m"
+                      limits:
+                        memory: "2Gi"
+                        cpu: "2000m"
+                    volumeMounts:
+                      - name: "global-cache"
+                        mountPath: "{{ jenkins_k8s_pvc_mount_path }}"
+                        readOnly: false
+                volumes:
+                  - name: "global-cache"
+                    persistentVolumeClaim:
+                      claimName: "{{ jenkins_k8s_pvc_name }}"
+          - name: "{{ jenkins_k8s_generic_agent_name }}"
+            label: "{{ jenkins_k8s_generic_agent_label }}"
+            nodeUsageMode: EXCLUSIVE
+            yaml: |
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                labels:
+                  jenkins-agent: generic
+              spec:
+                securityContext:
+                  runAsUser: 1000
+                  fsGroup: 1000
+                containers:
+                  - name: jnlp
+                    image: "jenkins/inbound-agent:jdk25"
+                    resources:
+                      requests:
+                        memory: "128Mi"
+                        cpu: "100m"
+                      limits:
+                        memory: "256Mi"
+                        cpu: "500m"
+                    volumeMounts:
+                      - name: "global-cache"
+                        mountPath: "{{ jenkins_k8s_pvc_mount_path }}"
+                        readOnly: false
+                  - name: shell
+                    image: "{{ jenkins_k8s_generic_agent_image }}"
+                    command:
+                      - cat
+                    tty: true
+                    workingDir: "/home/jenkins/agent"
+                    resources:
+                      requests:
+                        memory: "32Mi"
+                        cpu: "10m"
+                      limits:
+                        memory: "64Mi"
+                        cpu: "100m"
+                    volumeMounts:
+                      - name: "global-cache"
+                        mountPath: "{{ jenkins_k8s_pvc_mount_path }}"
+                        readOnly: false
+                volumes:
+                  - name: "global-cache"
+                    persistentVolumeClaim:
+                      claimName: "{{ jenkins_k8s_pvc_name }}"
+
+unclassified:
+  location:
+    url: "http://{{ ansible_default_ipv4.address }}:{{ jenkins_http_port }}/"

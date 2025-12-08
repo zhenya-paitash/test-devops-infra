@@ -1,0 +1,68 @@
+---
+# tasks/setup-k8s.yml
+# This task file is designed to be delegated to localhost.
+# It uses kubectl to create resources, bypassing Python library issues.
+
+- name: "K8S-SETUP | Create temporary directory for manifests"
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: k8s-manifests
+  register: manifest_dir
+
+- name: "K8S-SETUP | Template Kubernetes access manifest"
+  ansible.builtin.template:
+    src: "k8s-access.yaml.j2"
+    dest: "{{ manifest_dir.path }}/k8s-access.yaml"
+
+- name: "K8S-SETUP | Apply Kubernetes access manifest"
+  ansible.builtin.shell: "kubectl apply -f {{ manifest_dir.path }}/k8s-access.yaml"
+  changed_when: true
+
+- name: "K8S-SETUP | Template PersistentVolume manifest (if requested)"
+  ansible.builtin.template:
+    src: "k8s-pv.yaml.j2"
+    dest: "{{ manifest_dir.path }}/k8s-pv.yaml"
+  when: jenkins_k8s_create_pv | bool
+
+- name: "K8S-SETUP | Apply PersistentVolume manifest (if requested)"
+  ansible.builtin.shell: "kubectl apply -f {{ manifest_dir.path }}/k8s-pv.yaml"
+  changed_when: true
+  when: jenkins_k8s_create_pv | bool
+
+- name: "K8S-SETUP | Template PersistentVolumeClaim manifest (if requested)"
+  ansible.builtin.template:
+    src: "k8s-pvc.yaml.j2"
+    dest: "{{ manifest_dir.path }}/k8s-pvc.yaml"
+  when: jenkins_k8s_create_pvc | bool
+
+- name: "K8S-SETUP | Apply PersistentVolumeClaim manifest (if requested)"
+  ansible.builtin.shell: "kubectl apply -f {{ manifest_dir.path }}/k8s-pvc.yaml"
+  changed_when: true
+  when: jenkins_k8s_create_pvc | bool
+
+- name: "K8S-SETUP | Wait for ServiceAccount secret to be populated"
+  ansible.builtin.shell: "kubectl get secret {{ jenkins_k8s_agent_token_name }} -n {{ jenkins_k8s_namespace }} -o jsonpath='{.data.token}'"
+  register: sa_secret_token_raw
+  until: sa_secret_token_raw.stdout != ""
+  retries: 10
+  delay: 2
+
+- name: "K8S-SETUP | Get Kubernetes access information via kubectl"
+  ansible.builtin.shell: "{{ item }}"
+  register: kube_info
+  loop:
+    - "kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'"
+    - "kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}'"
+    - "kubectl get secret {{ jenkins_k8s_agent_token_name }} -n {{ jenkins_k8s_namespace }} -o jsonpath='{.data.token}' | base64 --decode"
+
+- name: "K8S-SETUP | Set Kubernetes facts"
+  ansible.builtin.set_fact:
+    k8s_api_server_url: "{{ kube_info.results[0].stdout }}"
+    k8s_ca_cert_data: "{{ kube_info.results[1].stdout }}"
+    jenkins_k8s_service_account_token: "{{ kube_info.results[2].stdout }}"
+    cacheable: true
+
+- name: "K8S-SETUP | Clean up temporary manifest directory"
+  ansible.builtin.file:
+    path: "{{ manifest_dir.path }}"
+    state: absent

@@ -1,0 +1,192 @@
+# Jenkins Controller Settings
+jenkins_image: "jenkins/jenkins:2.540-jdk21"
+jenkins_custom_image_name: "custom/jenkins-casc"
+jenkins_custom_image_tag: "latest"
+jenkins_container_name: "jenkins-controller"
+jenkins_home_on_host: "/var/jenkins_home"
+jenkins_http_port: 8080
+jenkins_jnlp_port: 50000
+
+# -----------------------------------------------------------------------------
+# @section     Настройки безопасности
+# @description Эти переменные КРАЙНЕ рекомендуется переопределять для production.
+# -----------------------------------------------------------------------------
+jenkins_admin_user: "admin"
+jenkins_admin_password: "DEFAULT" # Плейбук упадет, если не переопределить это значение
+
+# -----------------------------------------------------------------------------
+# @section     Основные параметры Jenkins
+# @description Эти переменные можно переопределять для кастомизации окружения.
+# -----------------------------------------------------------------------------
+jenkins_force_clean_install: false
+jenkins_url: ""  # Оставьте пустым для авто-определения, или укажите FQDN, например http://jenkins.mycompany.com
+jenkins_tunnel: "" # Оставьте пустым для авто-определения
+
+# -----------------------------------------------------------------------------
+# @section     Управление ресурсами
+# @description Настройки лимитов и запросов ресурсов для контейнера Jenkins.
+# -----------------------------------------------------------------------------
+jenkins_resource_limits_enabled: true
+jenkins_cpu_limit: '1.0'
+jenkins_mem_limit: '2g'
+jenkins_mem_reservation: '1g'
+jenkins_java_opts: "-Xmx1g -Djenkins.install.runSetupWizard=false"
+
+# -----------------------------------------------------------------------------
+# @section     Настройки кэширования для Kubernetes агентов
+# @description Параметры для создания и использования Persistent Volume Claim (PVC) для кэша агентов.
+# -----------------------------------------------------------------------------
+# --- Общие настройки PVC ---
+jenkins_k8s_pvc_name: "jenkins-agent-cache-pvc"
+jenkins_k8s_pvc_size: "10Gi"
+jenkins_k8s_pvc_mount_path: "/home/jenkins/.m2/repository"
+jenkins_k8s_pvc_access_modes: [ReadWriteOnce] # Для NFS измените на [ReadWriteMany]
+
+# --- Динамическое создание PVC через StorageClass ---
+# Укажите имя вашего StorageClass (напр. 'nfs-client'). Если оставить пустым, будет использоваться
+# StorageClass по умолчанию в кластере, либо произойдет привязка к статическому PV без класса.
+jenkins_k8s_pvc_storage_class: ""
+
+# --- Управление созданием ресурсов ---
+# Установите в 'true', чтобы роль создавала PVC, используя настройки выше.
+# Если используется StorageClass, роль создаст только PVC.
+jenkins_k8s_create_pvc: false
+
+# Установите в 'true', чтобы роль создавала статический PV типа hostPath.
+# ВНИМАНИЕ: Используйте только для разработки на однонодовом кластере.
+# При 'true' также рекомендуется установить 'jenkins_k8s_create_pvc: true'.
+jenkins_k8s_create_pv: false
+
+# --- Настройки для статического hostPath PV (используются, если jenkins_k8s_create_pv: true) ---
+jenkins_k8s_pv_name: "jenkins-agent-cache-pv"
+jenkins_k8s_pv_host_path: "/mnt/jenkins-cache"
+jenkins_k8s_pv_host_path_owner: "1000"
+jenkins_k8s_pv_host_path_group: "1000"
+
+# -----------------------------------------------------------------------------
+# @section     Плагины
+# -----------------------------------------------------------------------------
+# Основной, протестированный список плагинов
+jenkins_plugins:
+  # @link: https://plugins.jenkins.io/configuration-as-code/
+  # @desc: способ настройки Jenkins на основе понятных человеку декларативных конфигурационных файлов
+  # @label: [gitops, configuration-as-code]
+  - { name: "configuration-as-code", version: "2006.v001a_2ca_6b_574" }
+
+  # @link: https://plugins.jenkins.io/git/
+  # @desc: Плагин git обеспечивает основные операции с git для проектов Jenkins. Он может опрашивать, извлекать, проверять, создавать ветки, списывать, объединять, тегировать и отправлять репозитории
+  # @label: [git, source-code-managment]
+  - { name: "git", version: "5.8.1" }
+  # @link: https://plugins.jenkins.io/kubernetes/
+  # @desc: Плагин Jenkins для запуска динамических агентов в кластере Kubernetes
+  # @label: [administration, kubernetes]
+  - { name: "kubernetes", version: "4398.vb_b_33d9e7fe23" }
+  # @link: https://plugins.jenkins.io/ssh-slaves/
+  # @desc: Предоставляет возможность запуска агентов через SSH
+  # @label: [administration]
+  - { name: "ssh-slaves", version: "3.1085.vc64d040efa_85" }
+  # @link: https://plugins.jenkins.io/matrix-auth/
+  # @desc: детальный контроль доступа в Jenkins с помощью Матричной авторизации
+  # @label: [auth, administration, security]
+  - { name: "matrix-auth", version: "3.2.9" }
+  # @link: https://plugins.jenkins.io/pam-auth/
+  # @desc: Добавляет поддержку подключаемого модуля аутентификации Unix (PAM) в Jenkins
+  # @label: [auth, security]
+  - { name: "pam-auth", version: "1.12" }
+  # @link: https://plugins.jenkins.io/ldap/
+  # @desc: предоставляет ещё один способ аутентификации пользователей с помощью LDAP
+  # @label: [auth]
+  - { name: "ldap", version: "793.v754d6b_41b_ea_4" }
+  # @link: https://plugins.jenkins.io/antisamy-markup-formatter/
+  # @desc: позволяет форматировать описания заданий, сборок, представлений и т. д.
+  # @label: [security]
+  - { name: "antisamy-markup-formatter", version: "173.v680e3a_b_69ff3" }
+
+  # @link: https://plugins.jenkins.io/build-timeout/
+  # @desc: позволяет автоматически завершать сборку, если она занимает слишком много времени
+  # @label: [build]
+  - { name: "build-timeout", version: "1.38" }
+  # @link: https://plugins.jenkins.io/credentials-binding/
+  # @desc: позволяет привязывать учетные данные к переменным среды для использования на различных этапах сборки
+  # @label: [build, credentials]
+  - { name: "credentials-binding", version: "702.vfe613e537e88" }
+  # @link: https://plugins.jenkins.io/timestamper/
+  # @desc: добавляет временные метки к консольному выводу заданий Jenkins
+  # @label: [build, ui]
+  - { name: "timestamper", version: "1.30" }
+  # @link: https://plugins.jenkins.io/ws-cleanup/
+  # @desc: плагин удаляет рабочее пространство сборки (cleanWs)
+  # @label: [build]
+  - { name: "ws-cleanup", version: "0.49" }
+  # @link: https://plugins.jenkins.io/ant/
+  # @desc: добавляет Apache Ant (cli для управления процессами) в Jenkins
+  # @label: [build]
+  - { name: "ant", version: "520.vd082ecfb_16a_9" }
+  # @link: https://plugins.jenkins.io/workflow-aggregator/
+  # @desc: позволяет организовать автоматизацию
+  # @label: [cli, build, administration]
+  - { name: "workflow-aggregator", version: "608.v67378e9d3db_1" }
+  # @link: https://plugins.jenkins.io/plain-credentials/
+  # @desc: позволяет использовать простые строки и файлы в качестве учетных данных для передачи на различные этапы сборки
+  # @label: [dependency]
+  - { name: "plain-credentials", version: "199.v9f8e1f741799" }
+
+  # @link: https://plugins.jenkins.io/github-branch-source/
+  # @desc: позволяет создать новый проект на основе структуры репозитория одного или нескольких пользователей или организаций GitHub
+  # @label: [github, pipeline, source-code-managment]
+  - { name: "github-branch-source", version: "1925.v62fb_7ffb_08ce" }
+  # @link: https://plugins.jenkins.io/pipeline-github-lib/
+  # @desc: Позволяет загружать библиотеки Groovy для Pipeline «на лету» из публичных репозиториев на GitHub
+  # @label: [github, pipeline]
+  - { name: "pipeline-github-lib", version: "65.v203688e7727e" }
+  # @link: https://plugins.jenkins.io/pipeline-groovy-lib/
+  # @desc: плагин позволяет совместно использовать некоторые части скриптов конвейера
+  # @label: [pipeline]
+  - { name: "pipeline-groovy-lib", version: "787.ve2fef0efdca_6" }
+  # @link: https://plugins.jenkins.io/pipeline-graph-view/
+  # @desc: плагин добавляет визуальное представление конвейеров Jenkins, отображая каждый этап выполнения в наглядном и удобном графическом формате
+  # @label: [pipeline, ui]
+  - { name: "pipeline-graph-view", version: "724.v41764e7b_3176" }
+  # @link: https://plugins.jenkins.io/pipeline-stage-view/
+  # @desc: включает расширенную визуализацию истории сборки конвейера на главной странице проекта Flow в разделе Stage View
+  # @label: [ui]
+  - { name: "pipeline-stage-view", version: "2.38" }
+
+  # @link: https://plugins.jenkins.io/email-ext/
+  # @desc: плагин позволяет настраивать все аспекты уведомлений по электронной почте
+  # @label: [build, email]
+  - { name: "email-ext", version: "1933.v45cec755423f" }
+  # @link: https://plugins.jenkins.io/mailer/
+  # @desc: позволяет настраивать уведомления по электронной почте о результатах сборки
+  # @label: [build, email]
+  - { name: "mailer", version: "525.v2458b_d8a_1a_71" }
+
+  # @link: https://plugins.jenkins.io/cloudbees-folder/
+  # @desc: позволяет пользователям создавать «папки» для организации задач
+  # @label: [ui]
+  - { name: "cloudbees-folder", version: "6.1073.va_7888eb_dd514" }
+  # @link: https://plugins.jenkins.io/catppuccin-theme/
+  # @desc: Catppuccin themes
+  # @label: [ui]
+  - { name: "catppuccin-theme", version: "3.v903b_635ffa_b_4" }
+
+# Список дополнительных плагинов, которые можно переопределить в group_vars
+jenkins_plugins_extra: []
+
+# Kubernetes Agent Settings
+# jenkins_k8s_cluster_url: "https://kubernetes.default.svc"
+jenkins_k8s_namespace: "jenkins"
+jenkins_k8s_service_account_name: "jenkins-admin"
+jenkins_k8s_agent_image: "maven:3.9-eclipse-temurin-17-alpine"
+jenkins_k8s_agent_name: "maven-agent"
+jenkins_k8s_agent_label: "k8s-maven"
+jenkins_k8s_agent_role_name: "jenkins-schedule-agents"
+jenkins_k8s_agent_role_binding_name: "jenkins-schedule-agents-binding"
+jenkins_k8s_agent_token_name: "jenkins-agent-token"
+
+# Generic K8s Agent
+jenkins_k8s_generic_agent_name: "generic-agent"
+jenkins_k8s_generic_agent_label: "k8s-agent"
+jenkins_k8s_generic_agent_image: "alpine:latest"
+
+jenkins_k8s_service_account_token: "" # Populated dynamically

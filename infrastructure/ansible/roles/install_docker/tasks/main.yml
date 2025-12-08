@@ -1,0 +1,76 @@
+---
+# infrastructure/ansible/roles/install_docker/tasks/main.yml
+
+- name: "SETUP | Stop packagekitd to prevent apt lock issues"
+  ansible.builtin.service:
+    name: packagekit
+    state: stopped
+  ignore_errors: true
+  when: ansible_os_family == "Debian"
+
+- name: "CLEANUP | Remove existing Docker repository file"
+  ansible.builtin.file:
+    path: "/etc/apt/sources.list.d/docker.list"
+    state: absent
+  when: ansible_os_family == "Debian"
+
+- name: "CLEANUP | Remove existing Docker GPG key"
+  ansible.builtin.file:
+    path: "/etc/apt/keyrings/docker.asc"
+    state: absent
+  when: ansible_os_family == "Debian"
+
+- name: "CLEANUP | Force apt cache update to clear old state"
+  ansible.builtin.apt:
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+# --- PROCEED WITH INSTALLATION ON A CLEAN SYSTEM ---
+
+- name: "SETUP | Install Docker's dependencies"
+  ansible.builtin.apt:
+    name: "{{ docker__package_dependencies }}"
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: "SETUP | Create /etc/apt/keyrings directory"
+  ansible.builtin.file:
+    path: "/etc/apt/keyrings"
+    state: "directory"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+
+- name: "SETUP | Add Docker's APT repository key"
+  ansible.builtin.get_url:
+    url: "https://download.docker.com/linux/ubuntu/gpg"
+    dest: "/etc/apt/keyrings/docker.asc"
+    checksum: "{{ docker__apt_key_checksum }}"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+
+- name: "SETUP | Configure Docker's upstream APT repository"
+  ansible.builtin.apt_repository:
+    repo: "deb [arch={{ docker__architecture_map[ansible_architecture] }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+    update_cache: true
+    filename: docker
+  when: ansible_os_family == "Debian"
+
+- name: "INSTALL | Install Docker and Docker Compose v2"
+  ansible.builtin.apt:
+    name:
+      - "docker-ce"
+      - "docker-ce-cli"
+      - "containerd.io"
+      - "docker-compose-plugin"
+    state: "{{ docker__state }}"
+  when: ansible_os_family == "Debian"
+
+- name: "START | Ensure Docker service is running"
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true

@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-agent-cache-pvc  # Имя, которое используется в JCasC
+  namespace: jenkins
+spec:
+  volumeName: jenkins-agent-cache-pv
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce  # Важно! Об этом ниже.
+  resources:
+    requests:
+      storage: 10Gi # Размер диска
+

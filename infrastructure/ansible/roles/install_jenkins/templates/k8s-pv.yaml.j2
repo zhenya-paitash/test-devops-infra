@@ -1,0 +1,17 @@
+---
+# This manifest is templated by Ansible
+# It defines the static PersistentVolume for agent caching.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: "{{ jenkins_k8s_pv_name }}"
+spec:
+  capacity:
+    storage: "{{ jenkins_k8s_pvc_size }}"
+  accessModes:
+{% for mode in jenkins_k8s_pvc_access_modes %}
+  - {{ mode }}
+{% endfor %}
+  hostPath:
+    path: "{{ jenkins_k8s_pv_host_path }}"
+  persistentVolumeReclaimPolicy: Retain

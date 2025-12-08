@@ -1,13 +1,22 @@
 ---
 collections:
-  # Необходима для модуля sysctl и других POSIX-взаимодействий
+  # @desc: Необходима для модуля sysctl и других POSIX-взаимодействий
+  # @doc: https://galaxy.ansible.com/ui/repo/published/ansible/posix/
   - name: ansible.posix
-    version: "1.5.4"
+    version: "2.1.0"
 
-  # Содержит полезные модули и улучшенный callback 'yaml' для вывода
-  - name: community.general
-    version: "9.2.0"
-
-  # Критически важна для декларативного управления ресурсами Kubernetes
+  # @desc: Критически важна для декларативного управления ресурсами Kubernetes
+  # @doc: https://galaxy.ansible.com/ui/repo/published/kubernetes/core/
   - name: kubernetes.core
-    version: "2.4.0"
+    version: "6.2.0"
+
+  # @desc: Официальная коллекция для работы с Kubernetes
+  # @doc: https://galaxy.ansible.com/ui/repo/published/community/kubernetes/
+  # @why:
+  #  1. Изначально была одна большая коллекция community.kubernetes, которая содержала все модули для работы с Kubernetes.
+  #  2. Со временем самые важные, стабильные и часто используемые модули были выделены в новую, официально поддерживаемую коллекцию — `kubernetes.core`.
+  #  3. Старая коллекция community.kubernetes осталась, но теперь она либо содержит менее используемые, либо экспериментальные модули, либо просто перенаправляет
+  #     вызовы на kubernetes.core для обратной совместимости.
+  - name: community.kubernetes
+    version: "2.0.1"
+

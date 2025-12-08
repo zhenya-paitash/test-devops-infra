@@ -1,6 +1,6 @@
 ---
 - name: Install Kubernetes Cluster
-  hosts: all
+  hosts: master_nodes,worker_nodes
   become: true
   roles:
     - role: install_kubernetes

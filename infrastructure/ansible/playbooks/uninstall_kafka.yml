@@ -1,0 +1,16 @@
+---
+- name: Uninstall Kafka
+  hosts: kafka_nodes
+  become: true
+
+  vars:
+    remove_java: true
+    remove_user_and_group: true
+    remove_exporter: true
+    # kafka_java_version: 17
+
+  tasks:
+    - name: Include tasks from role install_kafka.cleanup
+      ansible.builtin.include_role:
+        name: install_kafka
+        tasks_from: cleanup.yml
