@@ -1,13 +1,21 @@
----
 - name: Install and configure Jenkins Controller
   hosts: jenkins_nodes
   become: true
 
   pre_tasks:
-    - name: "Wipe Jenkins home contents to ensure clean install"
-      ansible.builtin.shell: "rm -rf /var/jenkins_home/* /var/jenkins_home/.*"
-      args:
-        warn: false
+    - name: "Wipe Jenkins home directory to ensure clean install"
+      ansible.builtin.file:
+        path: "/var/jenkins_home"
+        state: absent
+      when: jenkins_force_clean_install | bool
+
+    - name: "Re-create Jenkins home directory"
+      ansible.builtin.file:
+        path: "/var/jenkins_home"
+        state: directory
+        owner: '1000'
+        group: '1000'
+        mode: '0755'
       when: jenkins_force_clean_install | bool
 
   roles:

@@ -1,80 +1,49 @@
 ---
-# tasks/setup-k8s.yml - Corrected version to run on localhost
+# tasks/setup-k8s.yml
+# This task file is designed to be delegated to localhost.
+# It uses kubectl to create resources, bypassing Python library issues.
 
-- name: Create namespace for Jenkins agents
-  kubernetes.core.k8s:
-    name: "{{ jenkins_k8s_namespace }}"
-    api_version: v1
-    kind: Namespace
-    state: present
+- name: "K8S-SETUP | Create temporary directory for manifests"
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: k8s-manifests
+  register: manifest_dir
 
-- name: Create ServiceAccount for Jenkins
-  kubernetes.core.k8s:
-    name: "{{ jenkins_k8s_service_account_name }}"
-    namespace: "{{ jenkins_k8s_namespace }}"
-    api_version: v1
-    kind: ServiceAccount
-    state: present
+- name: "K8S-SETUP | Template Kubernetes manifest"
+  ansible.builtin.template:
+    src: "resources.yaml.j2"
+    dest: "{{ manifest_dir.path }}/resources.yaml"
 
-- name: Create Role for Jenkins agents to manage pods
-  kubernetes.core.k8s:
-    definition:
-      apiVersion: rbac.authorization.k8s.io/v1
-      kind: Role
-      metadata:
-        name: "{{ jenkins_k8s_agent_role_name }}"
-        namespace: "{{ jenkins_k8s_namespace }}"
-      rules:
-      - apiGroups: [""]
-        resources: ["pods", "pods/exec", "pods/log"]
-        verbs: ["create", "delete", "get", "list", "patch", "watch"]
+- name: "K8S-SETUP | Apply Kubernetes manifest"
+  ansible.builtin.shell: "kubectl apply -f {{ manifest_dir.path }}/resources.yaml"
+  changed_when: true
+  # Add a delay to ensure resources are created before we query them
+  async: 10
+  poll: 2
 
-- name: Create RoleBinding for the ServiceAccount
-  kubernetes.core.k8s:
-    definition:
-      apiVersion: rbac.authorization.k8s.io/v1
-      kind: RoleBinding
-      metadata:
-        name: "{{ jenkins_k8s_agent_role_binding_name }}"
-        namespace: "{{ jenkins_k8s_namespace }}"
-      subjects:
-        - kind: ServiceAccount
-          name: "{{ jenkins_k8s_service_account_name }}"
-          namespace: "{{ jenkins_k8s_namespace }}"
-      roleRef:
-        kind: Role
-        name: "{{ jenkins_k8s_agent_role_name }}"
-        apiGroup: rbac.authorization.k8s.io
+- name: "K8S-SETUP | Wait for ServiceAccount secret to be populated"
+  ansible.builtin.shell: "kubectl get secret {{ jenkins_k8s_agent_token_name }} -n {{ jenkins_k8s_namespace }} -o jsonpath='{.data.token}'"
+  register: sa_secret_token_raw
+  until: sa_secret_token_raw.stdout != ""
+  retries: 10
+  delay: 2
 
-# Note: In modern Kubernetes, tokens are not automatically created for SAs.
-# This task explicitly creates a secret of type 'kubernetes.io/service-account-token' for the SA.
-- name: Ensure a secret for the ServiceAccount token exists
-  kubernetes.core.k8s:
-    definition:
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: "{{ jenkins_k8s_agent_token_name }}"
-        namespace: "{{ jenkins_k8s_namespace }}"
-        annotations:
-          kubernetes.io/service-account.name: "{{ jenkins_k8s_service_account_name }}"
-      type: kubernetes.io/service-account-token
-  register: sa_secret
+- name: "K8S-SETUP | Get Kubernetes access information via kubectl"
+  ansible.builtin.shell: "{{ item }}"
+  register: kube_info
+  loop:
+    - "kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'"
+    - "kubectl config view --minify --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}'"
+    - "kubectl get secret {{ jenkins_k8s_agent_token_name }} -n {{ jenkins_k8s_namespace }} -o jsonpath='{.data.token}' | base64 --decode"
 
-- name: Get the ServiceAccount token from the secret
-  ansible.builtin.shell: >
-    kubectl get secret -n {{ jenkins_k8s_namespace }} {{ jenkins_k8s_agent_token_name }} -o jsonpath='{.data.token}' | base64 --decode
-  register: sa_token_result
-  changed_when: false
-
-- name: Get Kubernetes API Server URL from current context
-  ansible.builtin.command: kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
-  register: kube_api_server_url
-  changed_when: false
-
-# Set facts to be used in the main playbook for the template
-- name: Set Kubernetes configuration facts
+- name: "K8S-SETUP | Set Kubernetes facts"
   ansible.builtin.set_fact:
-    jenkins_k8s_cluster_url: "{{ kube_api_server_url.stdout }}"
-    jenkins_k8s_service_account_token: "{{ sa_token_result.stdout }}"
+    k8s_api_server_url: "{{ kube_info.results[0].stdout }}"
+    k8s_ca_cert_data: "{{ kube_info.results[1].stdout }}"
+    jenkins_k8s_service_account_token: "{{ kube_info.results[2].stdout }}"
     cacheable: true
+
+- name: "K8S-SETUP | Clean up temporary manifest directory"
+  ansible.builtin.file:
+    path: "{{ manifest_dir.path }}"
+    state: absent

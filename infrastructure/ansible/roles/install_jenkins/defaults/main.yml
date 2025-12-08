@@ -7,14 +7,25 @@ jenkins_home_on_host: "/var/jenkins_home"
 jenkins_http_port: 8080
 jenkins_jnlp_port: 50000
 
-# JCasC Admin User
+# -----------------------------------------------------------------------------
+# @section     Настройки безопасности
+# @description Эти переменные КРАЙНЕ рекомендуется переопределять для production.
+# -----------------------------------------------------------------------------
 jenkins_admin_user: "admin"
-jenkins_admin_password: "DEFAULT"
+jenkins_admin_password: "DEFAULT" # Плейбук упадет, если не переопределить это значение
 
 # -----------------------------------------------------------------------------
-# Ansible & Docker Settings
+# @section     Основные параметры Jenkins
+# @description Эти переменные можно переопределять для кастомизации окружения.
 # -----------------------------------------------------------------------------
 jenkins_force_clean_install: false
+jenkins_url: ""  # Оставьте пустым для авто-определения, или укажите FQDN, например http://jenkins.mycompany.com
+jenkins_tunnel: "" # Оставьте пустым для авто-определения
+
+# -----------------------------------------------------------------------------
+# @section     Управление ресурсами
+# @description Настройки лимитов и запросов ресурсов для контейнера Jenkins.
+# -----------------------------------------------------------------------------
 jenkins_resource_limits_enabled: true
 jenkins_cpu_limit: '1.0'
 jenkins_mem_limit: '2g'
@@ -22,8 +33,19 @@ jenkins_mem_reservation: '1g'
 jenkins_java_opts: "-Xmx1g -Djenkins.install.runSetupWizard=false"
 
 # -----------------------------------------------------------------------------
-# Plugins List
+# @section     Настройки кэширования для Kubernetes агентов
+# @description Параметры для PersistentVolumeClaim, используемого для кэша.
 # -----------------------------------------------------------------------------
+jenkins_agent_pvc_enabled: true
+jenkins_agent_pvc_name: "jenkins-agent-cache-pvc"
+jenkins_agent_pvc_size: "10Gi"
+jenkins_agent_pvc_storage_class: ""
+jenkins_agent_pvc_mount_path: "/home/jenkins/.m2/repository"
+
+# -----------------------------------------------------------------------------
+# @section     Плагины
+# -----------------------------------------------------------------------------
+# Основной, протестированный список плагинов
 jenkins_plugins:
   # @link: https://plugins.jenkins.io/configuration-as-code/
   # @desc: способ настройки Jenkins на основе понятных человеку декларативных конфигурационных файлов
@@ -127,18 +149,19 @@ jenkins_plugins:
   # @label: [ui]
   - { name: "catppuccin-theme", version: "3.v903b_635ffa_b_4" }
 
-# -----------------------------------------------------------------------------
+# Список дополнительных плагинов, которые можно переопределить в group_vars
+jenkins_plugins_extra: []
+
 # Kubernetes Agent Settings
-# -----------------------------------------------------------------------------
-jenkins_k8s_cluster_url: "https://kubernetes.default.svc"
-jenkins_k8s_namespace: "jenkins" # Updated to match user's new spec
-jenkins_k8s_service_account_name: "jenkins-admin" # Updated to match user's new spec
-jenkins_k8s_agent_image: "maven:3.9-eclipse-temurin-17-alpine" # Default build tool image
+# jenkins_k8s_cluster_url: "https://kubernetes.default.svc"
+jenkins_k8s_namespace: "jenkins"
+jenkins_k8s_service_account_name: "jenkins-admin"
+jenkins_k8s_agent_image: "maven:3.9-eclipse-temurin-17-alpine"
 jenkins_k8s_agent_name: "maven-agent"
 jenkins_k8s_agent_label: "k8s-maven"
 jenkins_k8s_agent_role_name: "jenkins-schedule-agents"
 jenkins_k8s_agent_role_binding_name: "jenkins-schedule-agents-binding"
-jenkins_k8s_agent_token_name: "jenkins-agent-token" # This can be different from the SA name
+jenkins_k8s_agent_token_name: "jenkins-agent-token"
 
 # Generic K8s Agent
 jenkins_k8s_generic_agent_name: "generic-agent"
@@ -146,16 +169,3 @@ jenkins_k8s_generic_agent_label: "k8s-agent"
 jenkins_k8s_generic_agent_image: "alpine:latest"
 
 jenkins_k8s_service_account_token: "" # Populated dynamically
-
-# -----------------------------------------------------------------------------
-# Jenkins URL and Tunnel Settings (for overriding if behind proxy)
-# -----------------------------------------------------------------------------
-jenkins_url: ""  # Leave empty to auto-generate from IP and port
-jenkins_tunnel: ""  # Leave empty to auto-generate from IP and port
-
-# Kubernetes Agent Cache Settings
-jenkins_agent_pvc_enabled: true
-jenkins_agent_pvc_name: "jenkins-agent-cache-pvc" # Updated to match user's new spec
-jenkins_agent_pvc_size: "10Gi"
-jenkins_agent_pvc_storage_class: ""
-jenkins_agent_pvc_mount_path: "/home/jenkins/.m2/repository"

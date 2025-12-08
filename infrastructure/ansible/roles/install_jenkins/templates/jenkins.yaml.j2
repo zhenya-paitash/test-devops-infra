@@ -29,10 +29,9 @@ jenkins:
   clouds:
     - kubernetes:
         name: "kubernetes"
-        serverUrl: "{{ jenkins_k8s_cluster_url }}"
-        # WARNING: Insecure. Disables TLS certificate verification.
-        # For production, set to 'false' and provide a CA certificate.
-        skipTlsVerify: true
+        serverUrl: "{{ k8s_api_server_url }}"
+        serverCertificate: "{{ k8s_ca_cert_data }}"
+        skipTlsVerify: false
         namespace: "{{ jenkins_k8s_namespace }}"
         jenkinsUrl: "http://{{ ansible_default_ipv4.address }}:{{ jenkins_http_port }}/"
         jenkinsTunnel: "{{ jenkins_tunnel | default(ansible_default_ipv4.address + ':' + jenkins_jnlp_port | string) }}"
