@@ -1,0 +1,24 @@
+services:
+  jenkins:
+    image: "{{ jenkins_custom_image_name }}:{{ jenkins_custom_image_tag }}"
+    container_name: "{{ jenkins_container_name }}"
+    ports:
+      - "{{ jenkins_http_port }}:8080"
+      - "{{ jenkins_jnlp_port }}:50000"
+    volumes:
+      - "{{ jenkins_home_on_host }}:/var/jenkins_home"
+      - "{{ jenkins_home_on_host }}/jenkins.yaml:/var/jenkins_home/jenkins.yaml:ro"
+    restart: unless-stopped
+    environment:
+      - CASC_JENKINS_CONFIG=/var/jenkins_home/jenkins.yaml
+      - JAVA_OPTS={{ jenkins_java_opts }}
+      - ADMIN_PASSWORD={{ jenkins_admin_password }}
+{% if jenkins_resource_limits_enabled %}
+    deploy:
+      resources:
+        limits:
+          cpus: '{{ jenkins_cpu_limit | default("1.0") }}'
+          memory: '{{ jenkins_mem_limit | default("2g") }}'
+        reservations:
+          memory: '{{ jenkins_mem_reservation | default("1g") }}'
+{% endif %}

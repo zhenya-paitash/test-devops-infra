@@ -1,0 +1,39 @@
+---
+- name: "BUILD | Create temporary build directory"
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: "jenkins-build"
+  register: build_dir
+
+- name: "BUILD | Template build files into build directory"
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ build_dir.path }}/{{ item.dest }}"
+  loop:
+    - { src: 'Dockerfile.j2', dest: 'Dockerfile' }
+    - { src: 'plugins.txt.j2', dest: 'plugins.txt' }
+    - { src: 'jenkins.yaml.j2', dest: 'jenkins.yaml' }
+
+- name: "BUILD | Build custom Jenkins image (with verbose output)"
+  ansible.builtin.command: >
+    docker build -t {{ jenkins_custom_image_name }}:{{ jenkins_custom_image_tag }} .
+  args:
+    chdir: "{{ build_dir.path }}"
+  register: image_build_result
+  changed_when: "'Successfully built' in image_build_result.stdout"
+
+- name: "BUILD | Display full build log"
+  ansible.builtin.debug:
+    var: image_build_result.stdout
+
+- name: "BUILD | Display build errors if any"
+  ansible.builtin.debug:
+    var: image_build_result.stderr
+  when: image_build_result.stderr | length > 0
+
+# This cleanup runs even if the build fails
+- name: "BUILD | Clean up temporary build directory"
+  ansible.builtin.file:
+    path: "{{ build_dir.path }}"
+    state: absent
+  when: build_dir.path is defined

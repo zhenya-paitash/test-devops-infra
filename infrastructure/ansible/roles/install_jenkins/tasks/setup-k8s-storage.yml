@@ -1,0 +1,34 @@
+---
+# tasks/setup-k8s-storage.yml - DEBUG MODE
+
+- name: "K8S-STORAGE-DEBUG | Print storage variables"
+  ansible.builtin.debug:
+    msg:
+      - "Creating hostPath PV is set to: {{ jenkins_k8s_create_pv }}"
+      - "Host path is: {{ jenkins_k8s_pv_host_path }}"
+      - "Owner should be: {{ jenkins_k8s_pv_host_path_owner }}"
+      - "Group should be: {{ jenkins_k8s_pv_host_path_group }}"
+
+- name: "K8S-STORAGE | Ensure hostPath directory exists with correct mode"
+  ansible.builtin.file:
+    path: "{{ jenkins_k8s_pv_host_path }}"
+    state: directory
+    mode: '0775'
+  become: true
+
+- name: "K8S-STORAGE | Force ownership on hostPath directory"
+  ansible.builtin.command:
+    cmd: "chown -vR {{ jenkins_k8s_pv_host_path_owner }}:{{ jenkins_k8s_pv_host_path_group }} {{ jenkins_k8s_pv_host_path }}"
+  become: true
+  register: chown_result
+  changed_when: "'changed' in chown_result.stdout"
+
+- name: "K8S-STORAGE-VERIFY | Check final directory permissions"
+  ansible.builtin.command:
+    cmd: "ls -ld {{ jenkins_k8s_pv_host_path }}"
+  register: ls_result
+  become: true
+
+- name: "K8S-STORAGE-VERIFY | Display final directory permissions"
+  ansible.builtin.debug:
+    var: ls_result.stdout

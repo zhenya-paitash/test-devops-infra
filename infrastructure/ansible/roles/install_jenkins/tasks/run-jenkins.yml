@@ -1,0 +1,9 @@
+---
+# infrastructure/ansible/roles/install_jenkins_controller/tasks/run-jenkins.yml
+
+- name: Run Jenkins Controller
+  community.docker.docker_compose_v2:
+    project_src: "{{ jenkins_home_on_host }}"
+    project_name: "{{ jenkins_container_name }}"
+    state: present
+  register: jenkins_controller_status

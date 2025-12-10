@@ -1,0 +1,40 @@
+---
+# infrastructure/ansible/roles/install_jenkins/tasks/main.yml
+
+- name: "PREFLIGHT | Check for insecure default password"
+  ansible.builtin.fail:
+    msg: "FATAL: Default password 'DEFAULT' is being used. Please set 'jenkins_admin_password' to a secure value in your inventory."
+  when: jenkins_admin_password == "DEFAULT"
+
+- name: "SETUP | Install prerequisites (Docker)"
+  include_tasks: install-prereqs.yml
+  tags: [jenkins, setup, docker]
+
+- name: "SETUP | Create Jenkins home directory on host"
+  include_tasks: setup-host.yml
+  tags: [jenkins, setup, config]
+
+- name: "SETUP | Prepare Kubernetes storage for agents (hostPath PV)"
+  include_tasks: setup-k8s-storage.yml
+  tags: [jenkins, setup, k8s, storage]
+  when: jenkins_k8s_create_pv | bool
+
+- name: "SETUP | Prepare Kubernetes resources via kubectl"
+  tags: [jenkins, setup, k8s]
+  run_once: true
+  delegate_to: localhost
+  become: false
+  block:
+    - include_tasks: setup-k8s.yml
+
+- name: "BUILD | Build custom Jenkins image"
+  include_tasks: build-image.yml
+  tags: [jenkins, build]
+
+- name: "CONFIG | Prepare host configuration files (compose, JCasC)"
+  include_tasks: prepare-config-files.yml
+  tags: [jenkins, config]
+
+- name: "RUN | Run Jenkins Controller from custom image"
+  include_tasks: run-jenkins.yml
+  tags: [jenkins, run]

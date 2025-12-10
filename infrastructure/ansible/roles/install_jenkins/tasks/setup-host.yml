@@ -1,0 +1,11 @@
+---
+# infrastructure/ansible/roles/install_jenkins_controller/tasks/setup-host.yml
+
+- name: Create Jenkins home directory
+  ansible.builtin.file:
+    path: "{{ jenkins_home_on_host }}"
+    state: directory
+    owner: '1000'
+    group: '1000'
+    mode: '0755'
+    recurse: yes

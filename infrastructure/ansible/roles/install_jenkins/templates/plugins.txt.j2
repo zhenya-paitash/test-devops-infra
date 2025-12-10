@@ -1,0 +1,8 @@
+{% for plugin in jenkins_plugins -%}
+{{ plugin.name }}:{{ plugin.version }}
+{% endfor -%}
+{% for plugin in jenkins_plugins_extra -%}
+{{ plugin.name }}{% if plugin.version is defined %}:{{ plugin.version }}{% endif %}
+{% endfor -%}
+
+

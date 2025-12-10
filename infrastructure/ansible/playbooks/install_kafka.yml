@@ -1,0 +1,20 @@
+---
+- name: Install and configure Kafka
+  hosts: kafka_nodes
+  become: true
+
+  # @use: ansible-playbook -i inventories/dev playbooks/install_kafka.yml -e kafka_install_method=host
+  # or
+  vars: 
+    kafka_install_method: container  # container | host
+
+  tasks:
+    - name: Run host installation role
+      ansible.builtin.include_role:
+        name: install_kafka
+      when: kafka_install_method == "host"
+
+    - name: Run container installation role
+      ansible.builtin.include_role:
+        name: install_kafka_container
+      when: kafka_install_method == "container"
